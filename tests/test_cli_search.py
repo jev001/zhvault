@@ -194,8 +194,8 @@ def test_search_semantic_expand_graph(tmp_path, capsys):
 
 
 def test_search_index_fails_without_embed_provider_when_st_missing(monkeypatch, tmp_path, capsys):
-    monkeypatch.setattr("cli._sentence_transformers_importable", lambda: False)
-    monkeypatch.setattr("cli._chroma_importable", lambda: True)
+    monkeypatch.setattr("cli.common.sentence_transformers_importable", lambda: False)
+    monkeypatch.setattr("cli.common.chroma_importable", lambda: True)
     rc = main(["search", "index", "--vector-backend", "memory", "--json", "--data-dir", str(tmp_path)])
     assert rc != 0
     err = capsys.readouterr()
@@ -205,7 +205,7 @@ def test_search_index_fails_without_embed_provider_when_st_missing(monkeypatch, 
 
 
 def test_search_index_fails_without_backend_when_chroma_missing(monkeypatch, tmp_path, capsys):
-    monkeypatch.setattr("cli._chroma_importable", lambda: False)
+    monkeypatch.setattr("cli.common.chroma_importable", lambda: False)
     rc = main(["search", "index", "--json", "--data-dir", str(tmp_path), *HASH_FLAGS])
     assert rc != 0
     err = capsys.readouterr()

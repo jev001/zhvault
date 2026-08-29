@@ -81,7 +81,7 @@ def test_graph_rebuild_me_failure_stays_offline(tmp_path, monkeypatch):
         def get_json(self, url):
             raise PermissionError("auth failed HTTP 403")
 
-    monkeypatch.setattr("cli.ZhihuClient", BoomClient)
+    monkeypatch.setattr("cli.common.ZhihuClient", BoomClient)
     rc = main(["graph", "rebuild", "--data-dir", str(tmp_path), "--json"])
     assert rc == 0
     payload = json.loads(
@@ -107,7 +107,7 @@ def test_graph_rebuild_uses_me_when_cookies_ok(tmp_path, monkeypatch):
             assert "api/v4/me" in url
             return {"url_token": "me_token", "id": "123"}
 
-    monkeypatch.setattr("cli.ZhihuClient", OkClient)
+    monkeypatch.setattr("cli.common.ZhihuClient", OkClient)
     rc = main(["graph", "rebuild", "--data-dir", str(tmp_path), "--json"])
     assert rc == 0
     payload = json.loads(

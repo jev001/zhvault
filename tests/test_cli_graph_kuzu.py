@@ -86,7 +86,7 @@ def test_graph_query_backend_memory(tmp_path, capsys):
 
 
 def test_graph_query_backend_kuzu_without_sync(monkeypatch, tmp_path, capsys):
-    monkeypatch.setattr("cli._kuzu_importable", lambda: True)
+    monkeypatch.setattr("cli.common.kuzu_importable", lambda: True)
     meta = tmp_path / "meta"
     meta.mkdir()
     rc = main(
