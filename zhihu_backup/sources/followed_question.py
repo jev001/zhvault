@@ -4,7 +4,7 @@ from typing import Iterator, Optional
 
 from zhihu_backup.http_client import ZhihuClient
 from zhihu_backup.models import NormalizedItem
-from zhihu_backup.parse import normalize_content
+from zhihu_backup.parse import enrich_question_detail, normalize_content, question_payload_from_row
 from zhihu_backup.sources.base import Source
 
 
@@ -27,12 +27,12 @@ class FollowedQuestionSource(Source):
             rows = data.get("data") or []
             items: list[NormalizedItem] = []
             for row in rows:
-                content = row if row.get("type") == "question" else (row.get("question") or row)
-                if isinstance(content, dict) and not content.get("type"):
-                    content = dict(content)
-                    content["type"] = "question"
+                content = question_payload_from_row(row if isinstance(row, dict) else {})
+                if not content:
+                    continue
+                content = enrich_question_detail(self.client, content)
                 item = normalize_content(
-                    content if isinstance(content, dict) else row,
+                    content,
                     owner_kind="followed_questions",
                     owner_id=self.source_id,
                     source_tag=f"followed:{self.source_id}",

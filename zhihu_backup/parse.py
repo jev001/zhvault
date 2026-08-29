@@ -102,8 +102,8 @@ def normalize_content(
     elif item_type == "question":
         title = content_data.get("title") or f"question_{zhihu_id}"
         html = content_data.get("detail") or content_data.get("excerpt") or ""
-        if not url or url == "#":
-            url = f"https://www.zhihu.com/question/{zhihu_id}"
+        # List APIs often return api URL; always prefer the public question page.
+        url = f"https://www.zhihu.com/question/{zhihu_id}"
     else:
         title = content_data.get("title") or f"{item_type}_{zhihu_id}"
         raw = content_data.get("content", "")
@@ -144,3 +144,40 @@ def normalize_collection_item(
         owner_id=collection_id,
         source_tag=f"collection:{collection_id}",
     )
+
+
+def question_payload_from_row(row: dict[str, Any]) -> dict[str, Any]:
+    content = row if row.get("type") == "question" else (row.get("question") or row)
+    if not isinstance(content, dict):
+        return {}
+    if not content.get("type"):
+        content = dict(content)
+        content["type"] = "question"
+    return content
+
+
+def enrich_question_detail(client: Any, content: dict[str, Any]) -> dict[str, Any]:
+    """List endpoints omit question HTML; fetch /questions/{id} when detail/excerpt empty."""
+    if content.get("detail") or content.get("excerpt"):
+        return content
+    qid = str(content.get("id") or "")
+    if not qid:
+        return content
+    try:
+        detail = client.get_json(
+            f"https://www.zhihu.com/api/v4/questions/{qid}",
+            params={"include": "detail"},
+        )
+    except Exception:
+        return content
+    if not isinstance(detail, dict):
+        return content
+    merged = dict(content)
+    for key in ("detail", "excerpt", "title", "author", "created", "updated_time", "comment_count", "answer_count"):
+        if detail.get(key) is not None and not merged.get(key):
+            merged[key] = detail[key]
+    if detail.get("detail"):
+        merged["detail"] = detail["detail"]
+    if detail.get("excerpt") and not merged.get("detail"):
+        merged["excerpt"] = detail["excerpt"]
+    return merged
