@@ -1,11 +1,12 @@
-.PHONY: help sync install sync-all test lint fmt build gate zhvault clean clean-cache clean-all docs-arch
+.PHONY: help sync install sync-all test test-live lint fmt build gate zhvault clean clean-cache clean-all docs-arch
 .DEFAULT_GOAL := help
 
 UV ?= uv
 
 help:
-	@echo "Targets: sync install sync-all test lint fmt build gate zhvault clean clean-cache clean-all docs-arch ARGS=..."
+	@echo "Targets: sync install sync-all test test-live lint fmt build gate zhvault clean clean-cache clean-all docs-arch ARGS=..."
 	@echo "sync uses uv (fallback: pip). gate = REQUIRED green check"
+	@echo "test-live = optional real Zhihu network (ZHVAULT_LIVE_USER + cookie; not in gate)"
 	@echo "clean = dist/build/egg-info; clean-cache += caches; clean-all += .venv (never data/)"
 	@echo "docs-arch = regenerate docs/harness/ops/architecture.md from src/"
 
@@ -26,6 +27,14 @@ sync-all:
 
 test:
 	@if command -v $(UV) >/dev/null 2>&1; then $(UV) run pytest; else pytest; fi
+
+# Clears addopts so -m live is not AND-ed with "not live". Requires cookie + ZHVAULT_LIVE_USER.
+test-live:
+	@if command -v $(UV) >/dev/null 2>&1; then \
+		ZHVAULT_LIVE=1 $(UV) run pytest -m live -o addopts= $(ARGS); \
+	else \
+		ZHVAULT_LIVE=1 pytest -m live -o addopts= $(ARGS); \
+	fi
 
 lint:
 	@if command -v $(UV) >/dev/null 2>&1; then $(UV) run ruff check src tests; else ruff check src tests; fi

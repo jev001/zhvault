@@ -75,7 +75,9 @@ Agent / vibe constraints: [HARNESS.md](HARNESS.md) (taxonomy: python / frontend 
 make sync       # uv sync --extra dev (falls back to pip)
 make sync-all   # all optional extras (chroma/kuzu/rocksdb/…)
 pre-commit install
-make gate       # required green: ruff + full pytest
+make gate       # required green: ruff + full pytest (excludes live network)
+# optional real API smoke (needs Cookies.json or ZHVAULT_COOKIE_FILE + ZHVAULT_LIVE_USER):
+# ZHVAULT_LIVE_USER=example_token make test-live
 make build
 make clean      # dist/build/egg-info; clean-cache += caches; clean-all += .venv
 uv run zhvault status --json

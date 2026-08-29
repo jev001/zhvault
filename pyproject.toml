@@ -33,12 +33,15 @@ zhihu-backup = "cli:main"
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "tests"]
 testpaths = ["tests"]
+# Live network tests are opt-in (make test-live); keep gate offline.
+addopts = ["-m", "not live"]
 markers = [
     "chroma: tests that require the optional chromadb extra",
     "kuzu: tests that require the optional kuzu extra",
     "rocksdb: tests that require the optional rocksdict (zhvault[rocksdb]) extra",
+    "live: optional real-network Zhihu checks (ZHVAULT_LIVE=1; see make test-live)",
 ]
 
 [tool.ruff]

@@ -92,7 +92,8 @@ Social / graph notes:
 
 ## Verify
 
-- **`make gate`** (required) — `ruff check src` + full `pytest`
+- **`make gate`** (required) — `ruff check src` + full `pytest` (excludes `@pytest.mark.live`)
+- Optional live network: `ZHVAULT_LIVE_USER=<url_token> make test-live` (+ `Cookies.json` or `ZHVAULT_COOKIE_FILE`); 429/403/timeout soft-skip; contract bugs fail. Not part of gate.
 - Same collection twice → second run mostly `skipped`
 - Interrupt then `resume` continues from checkpoint offset
 - One source HTTP 403 → `source_error` + continue other sources (`stats.source_errors`); try `--x-zse-96` if browser works

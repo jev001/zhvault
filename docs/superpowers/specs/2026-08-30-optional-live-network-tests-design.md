@@ -1,7 +1,7 @@
 # Optional Live Network Tests — Design
 
 **Date:** 2026-08-30  
-**Status:** Draft (awaiting user review)
+**Status:** Implemented (awaiting optional commit)
 
 ## Goal
 
