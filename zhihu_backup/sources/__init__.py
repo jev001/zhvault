@@ -9,6 +9,8 @@ from zhihu_backup.sources.pin import PinSource
 from zhihu_backup.sources.asked_question import AskedQuestionSource
 from zhihu_backup.sources.followed_question import FollowedQuestionSource
 from zhihu_backup.sources.vote import VoteSource
+from zhihu_backup.sources.following import FollowingSource
+from zhihu_backup.sources.followers import FollowersSource
 
 
 def build_sources(
@@ -30,13 +32,16 @@ def build_sources(
             sources.append(CollectionSource(client, cid))
 
     me = None
-    need_me = name in ("all", "pin", "pins", "asked", "asked_questions", "followed", "followed_questions", "vote", "votes")
+    need_me = name in (
+        "all", "pin", "pins", "asked", "asked_questions", "followed", "followed_questions",
+        "vote", "votes", "following", "followers", "social",
+    )
     if need_me and name != "collection" and name != "collections":
         try:
             me = client.get_json(url_me)
         except Exception:
             me = {}
-    user_id = str((me or {}).get("id") or (me or {}).get("url_token") or "")
+    user_id = str((me or {}).get("url_token") or (me or {}).get("id") or "")
 
     if name in ("all", "pin", "pins") and user_id:
         sources.append(PinSource(client, user_id))
@@ -46,6 +51,11 @@ def build_sources(
         sources.append(FollowedQuestionSource(client, user_id))
     if name in ("all", "vote", "votes") and user_id:
         sources.append(VoteSource(client, user_id))
+    # NOTE: "all" must NOT include following/followers
+    if name in ("following", "social") and user_id:
+        sources.append(FollowingSource(client, user_id))
+    if name in ("followers", "social") and user_id:
+        sources.append(FollowersSource(client, user_id))
 
     return sources
 
@@ -57,5 +67,7 @@ __all__ = [
     "AskedQuestionSource",
     "FollowedQuestionSource",
     "VoteSource",
+    "FollowingSource",
+    "FollowersSource",
     "build_sources",
 ]

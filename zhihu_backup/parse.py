@@ -132,6 +132,32 @@ def normalize_content(
     )
 
 
+def normalize_member(
+    row: dict,
+    *,
+    center_id: str,
+    source_name: str,  # following | followers
+) -> Optional[NormalizedItem]:
+    token = str(row.get("url_token") or row.get("id") or "")
+    if not token:
+        return None
+    name = str(row.get("name") or token)
+    headline = str(row.get("headline") or "")
+    return NormalizedItem(
+        item_type="user",
+        zhihu_id=token,
+        url=f"https://www.zhihu.com/people/{token}",
+        title=name,
+        author=name,
+        author_badge=headline,
+        markdown_body=headline or name,
+        owner_kind="people",
+        owner_id=center_id,
+        sources=[f"{source_name}:{center_id}"],
+        modified=None,  # always rewrite person shell unless --full skip via hash later
+    )
+
+
 def normalize_collection_item(
     item_json: dict[str, Any],
     *,

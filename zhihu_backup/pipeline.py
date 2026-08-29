@@ -6,11 +6,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from zhihu_backup.models import Checkpoint, ItemRecord, NormalizedItem, RunStats, business_extra
+from zhihu_backup.models import Checkpoint, GraphEdge, ItemRecord, NormalizedItem, RunStats, business_extra
 from zhihu_backup.sources.base import Source
 from zhihu_backup.storage.base import StorageEngine
 from zhihu_backup.writers.asset import AssetWriter
 from zhihu_backup.writers.content import ContentWriter
+from zhihu_backup.writers.person import PersonWriter
 
 log = logging.getLogger("zhihu_backup")
 
@@ -38,6 +39,7 @@ class Pipeline:
     ):
         self.engine = engine
         self.contents = ContentWriter(contents_root)
+        self.people = PersonWriter(contents_root)
         self.assets = AssetWriter(assets_root, engine, session=session, workers=asset_workers)
         self.full = full
         self.limit = limit
@@ -53,6 +55,8 @@ class Pipeline:
         existing = self.engine.get_item(item.key)
         if not existing:
             return False
+        if item.item_type == "user":
+            return True
         new_updated = item.updated_at_str()
         if existing.content_updated_at and new_updated and existing.content_updated_at == new_updated:
             return True
@@ -60,8 +64,62 @@ class Pipeline:
             return True
         return False
 
+    def _upsert_follows_edge(self, item: NormalizedItem, source: Source) -> None:
+        if source.name == "following":
+            from_id = f"user:{source.source_id}"
+            to_id = f"user:{item.zhihu_id}"
+        elif source.name == "followers":
+            from_id = f"user:{item.zhihu_id}"
+            to_id = f"user:{source.source_id}"
+        else:
+            return
+        self.engine.upsert_graph_edge(
+            GraphEdge(
+                from_id=from_id,
+                to_id=to_id,
+                kind="follows",
+                origin="api",
+                seen_at=_now(),
+            )
+        )
+
+    def process_person(self, item: NormalizedItem, *, source: Source) -> str:
+        """Skip existing user shells unless --full; always refresh follows edge."""
+        try:
+            existing = self.engine.get_item(item.key)
+            if not self.full and existing:
+                existing.last_seen_at = _now()
+                existing.orphaned = False
+                self.engine.upsert_item(existing)
+                self._upsert_follows_edge(item, source)
+                return "skipped"
+
+            path = self.people.write(item, item.markdown_body)
+            record = ItemRecord(
+                key=item.key,
+                item_type=item.item_type,
+                zhihu_id=item.zhihu_id,
+                url=item.url,
+                title=item.title,
+                content_updated_at=item.updated_at_str(),
+                content_hash=_hash_body(item.markdown_body),
+                path=str(path),
+                last_seen_at=_now(),
+                orphaned=False,
+                extra=business_extra(item),
+            )
+            self.engine.upsert_item(record)
+            self._upsert_follows_edge(item, source)
+            return "updated" if existing else "created"
+        except Exception as e:
+            self.engine.record_failed(item.key, source.name, source.source_id, str(e))
+            log.exception("failed item %s", item.key)
+            return "failed"
+
     def process_item(self, item: NormalizedItem, *, source: Source) -> str:
         """Returns action: created|updated|skipped|failed."""
+        if item.item_type == "user":
+            return self.process_person(item, source=source)
         try:
             existing = self.engine.get_item(item.key)
             if self.should_skip(item):
