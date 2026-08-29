@@ -40,6 +40,8 @@ def business_extra(item: "NormalizedItem") -> dict[str, str]:
         return {"pin_id": zid}
     if t == "zvideo":
         return {"zvideo_id": zid}
+    if t == "user":
+        return {"user_id": zid, "url_token": zid}
     out = {f"{t}_id": zid}
     if parent:
         out["parent_id"] = parent
@@ -97,6 +99,28 @@ class ItemRecord:
             last_seen_at=data.get("last_seen_at"),
             orphaned=bool(data.get("orphaned", False)),
             extra=data.get("extra") or {},
+        )
+
+
+@dataclass
+class GraphEdge:
+    from_id: str
+    to_id: str
+    kind: str
+    origin: str  # api | manual
+    seen_at: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "GraphEdge":
+        return cls(
+            from_id=str(data["from_id"]),
+            to_id=str(data["to_id"]),
+            kind=str(data["kind"]),
+            origin=str(data["origin"]),
+            seen_at=str(data.get("seen_at") or ""),
         )
 
 

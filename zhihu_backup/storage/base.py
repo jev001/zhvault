@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from zhihu_backup.models import Checkpoint, ItemRecord
+from zhihu_backup.models import Checkpoint, GraphEdge, ItemRecord
 
 
 class StorageEngine(ABC):
@@ -57,6 +57,26 @@ class StorageEngine(ABC):
 
     @abstractmethod
     def status_summary(self) -> dict[str, Any]:
+        ...
+
+    @abstractmethod
+    def upsert_graph_edge(self, edge: GraphEdge) -> None:
+        ...
+
+    @abstractmethod
+    def remove_graph_edge(self, from_id: str, to_id: str, kind: str) -> None:
+        ...
+
+    @abstractmethod
+    def list_graph_edges(self) -> list[GraphEdge]:
+        ...
+
+    @abstractmethod
+    def list_items(self) -> list[ItemRecord]:
+        ...
+
+    @abstractmethod
+    def list_membership(self) -> list[dict[str, str]]:
         ...
 
     def close(self) -> None:

@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Optional
 
-from zhihu_backup.models import Checkpoint, ItemRecord
+from zhihu_backup.models import Checkpoint, GraphEdge, ItemRecord
 from .base import StorageEngine
 
 
@@ -67,6 +67,14 @@ class SqliteEngine(StorageEngine):
                 source_id TEXT,
                 error TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS graph_edges (
+                from_id TEXT NOT NULL,
+                to_id TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                origin TEXT NOT NULL,
+                seen_at TEXT,
+                PRIMARY KEY (from_id, to_id, kind)
             );
             """
         )
@@ -213,6 +221,57 @@ class SqliteEngine(StorageEngine):
             (key, source, source_id, error),
         )
         self._conn.commit()
+
+    def upsert_graph_edge(self, edge: GraphEdge) -> None:
+        self._conn.execute(
+            """
+            INSERT OR REPLACE INTO graph_edges(from_id, to_id, kind, origin, seen_at)
+            VALUES(?, ?, ?, ?, ?)
+            """,
+            (edge.from_id, edge.to_id, edge.kind, edge.origin, edge.seen_at),
+        )
+        self._conn.commit()
+
+    def remove_graph_edge(self, from_id: str, to_id: str, kind: str) -> None:
+        self._conn.execute(
+            "DELETE FROM graph_edges WHERE from_id = ? AND to_id = ? AND kind = ?",
+            (from_id, to_id, kind),
+        )
+        self._conn.commit()
+
+    def list_graph_edges(self) -> list[GraphEdge]:
+        rows = self._conn.execute(
+            "SELECT from_id, to_id, kind, origin, seen_at FROM graph_edges ORDER BY from_id, to_id, kind"
+        ).fetchall()
+        return [GraphEdge.from_dict(dict(r)) for r in rows]
+
+    def list_items(self) -> list[ItemRecord]:
+        rows = self._conn.execute("SELECT * FROM items ORDER BY key").fetchall()
+        out: list[ItemRecord] = []
+        for row in rows:
+            extra = json.loads(row["extra"] or "{}")
+            out.append(
+                ItemRecord(
+                    key=row["key"],
+                    item_type=row["item_type"],
+                    zhihu_id=row["zhihu_id"],
+                    url=row["url"] or "",
+                    title=row["title"] or "",
+                    content_updated_at=row["content_updated_at"],
+                    content_hash=row["content_hash"],
+                    path=row["path"],
+                    last_seen_at=row["last_seen_at"],
+                    orphaned=bool(row["orphaned"]),
+                    extra=extra,
+                )
+            )
+        return out
+
+    def list_membership(self) -> list[dict[str, str]]:
+        rows = self._conn.execute(
+            "SELECT key, owner_kind, owner_id FROM membership ORDER BY key, owner_kind, owner_id"
+        ).fetchall()
+        return [{"key": r["key"], "owner_kind": r["owner_kind"], "owner_id": r["owner_id"]} for r in rows]
 
     def status_summary(self) -> dict[str, Any]:
         items = self._conn.execute("SELECT COUNT(*) AS c FROM items").fetchone()["c"]

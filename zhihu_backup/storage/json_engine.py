@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from zhihu_backup.models import Checkpoint, ItemRecord
+from zhihu_backup.models import Checkpoint, GraphEdge, ItemRecord
 from .base import StorageEngine
 
 
@@ -30,6 +30,7 @@ class JsonEngine(StorageEngine):
             "assets": {},
             "item_assets": {},
             "failed_items": [],
+            "graph_edges": {},
         }
 
     def _load(self) -> dict[str, Any]:
@@ -124,6 +125,35 @@ class JsonEngine(StorageEngine):
                 {"key": key, "source": source, "source_id": source_id, "error": error, "created_at": _now()}
             )
             self._save()
+
+    def _graph_edge_key(self, from_id: str, to_id: str, kind: str) -> str:
+        return f"{from_id}\t{to_id}\t{kind}"
+
+    def upsert_graph_edge(self, edge: GraphEdge) -> None:
+        with self._lock:
+            key = self._graph_edge_key(edge.from_id, edge.to_id, edge.kind)
+            self._data.setdefault("graph_edges", {})[key] = edge.to_dict()
+            self._save()
+
+    def remove_graph_edge(self, from_id: str, to_id: str, kind: str) -> None:
+        with self._lock:
+            key = self._graph_edge_key(from_id, to_id, kind)
+            self._data.setdefault("graph_edges", {}).pop(key, None)
+            self._save()
+
+    def list_graph_edges(self) -> list[GraphEdge]:
+        with self._lock:
+            edges = self._data.get("graph_edges") or {}
+            return [GraphEdge.from_dict(v) for v in edges.values()]
+
+    def list_items(self) -> list[ItemRecord]:
+        with self._lock:
+            items = self._data.get("items") or {}
+            return [ItemRecord.from_dict(v) for v in items.values()]
+
+    def list_membership(self) -> list[dict[str, str]]:
+        with self._lock:
+            return list(self._data.get("membership") or [])
 
     def status_summary(self) -> dict[str, Any]:
         with self._lock:
