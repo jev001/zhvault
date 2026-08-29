@@ -35,7 +35,7 @@ def open_vector_store(backend: str, root: Path) -> VectorStore:
     if backend == "memory":
         from zhihu_backup.search.memory_store import MemoryVectorStore
 
-        return MemoryVectorStore()
+        return MemoryVectorStore(persist_path=Path(root) / "memory.json")
     if backend == "chroma":
         try:
             import chromadb  # noqa: F401

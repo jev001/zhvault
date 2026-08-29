@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import logging
 import sys
@@ -18,6 +19,9 @@ from zhihu_backup.graph import query_graph, rebuild_graph
 from zhihu_backup.http_client import ZhihuClient
 from zhihu_backup.models import GraphEdge
 from zhihu_backup.pipeline import Pipeline
+from zhihu_backup.search.embed import HashEmbeddingProvider
+from zhihu_backup.search.index import build_index
+from zhihu_backup.search.store import VectorBackendError, open_vector_store
 from zhihu_backup.sources import build_sources
 from zhihu_backup.storage import open_engine
 
@@ -134,6 +138,43 @@ def require_max_depth_mvp(n: int) -> Optional[str]:
 
 def _engine_meta_dir(meta: Path, engine_name: str) -> Path:
     return Path(meta) / (engine_name or "sqlite").lower()
+
+
+def _vectors_root(meta: Path, engine_name: str) -> Path:
+    return _engine_meta_dir(meta, engine_name) / "vectors"
+
+
+def _chroma_importable() -> bool:
+    return importlib.util.find_spec("chromadb") is not None
+
+
+def _resolve_vector_backend(explicit: Optional[str]) -> str:
+    if explicit:
+        return explicit
+    if _chroma_importable():
+        return "chroma"
+    raise VectorBackendError(
+        "chroma backend requires chromadb. "
+        "Install with: pip install 'zhihu-backup[chroma]' "
+        "(or pass --vector-backend memory)"
+    )
+
+
+def _kinds_from_args(kind: Optional[list[str]]) -> Optional[set[str]]:
+    if kind is None:
+        return None
+    if "all" in kind:
+        return None
+    return set(kind)
+
+
+def _cmd_fail(args: argparse.Namespace, msg: str, code: int = 2) -> int:
+    log.error("%s", msg)
+    if args.json:
+        _json_print({"event": "error", "error": msg})
+    else:
+        print(msg, file=sys.stderr)
+    return code
 
 
 def _now() -> str:
@@ -374,6 +415,98 @@ def cmd_graph_query(args: argparse.Namespace) -> int:
         engine.close()
 
 
+def cmd_search_index(args: argparse.Namespace) -> int:
+    data_dir = Path(args.data_dir)
+    contents, _, meta = _data_paths(data_dir)
+    try:
+        backend = _resolve_vector_backend(getattr(args, "vector_backend", None))
+    except VectorBackendError as e:
+        return _cmd_fail(args, str(e))
+    engine = open_engine(args.engine, meta)
+    try:
+        vectors_root = _vectors_root(meta, args.engine)
+        try:
+            store = open_vector_store(backend, vectors_root)
+        except VectorBackendError as e:
+            return _cmd_fail(args, str(e))
+        stats = build_index(
+            engine,
+            contents,
+            vectors_root,
+            store=store,
+            embedder=HashEmbeddingProvider(),
+        )
+        summary = {"event": "summary", "backend": backend, **stats}
+        if args.json:
+            _json_print(summary)
+        else:
+            print(json.dumps(summary, ensure_ascii=False, indent=2))
+        return 0
+    finally:
+        engine.close()
+
+
+def cmd_search_semantic(args: argparse.Namespace) -> int:
+    data_dir = Path(args.data_dir)
+    _, _, meta = _data_paths(data_dir)
+    try:
+        backend = _resolve_vector_backend(getattr(args, "vector_backend", None))
+    except VectorBackendError as e:
+        return _cmd_fail(args, str(e))
+    engine = open_engine(args.engine, meta)
+    try:
+        vectors_root = _vectors_root(meta, args.engine)
+        try:
+            store = open_vector_store(backend, vectors_root)
+        except VectorBackendError as e:
+            return _cmd_fail(args, str(e))
+        embedder = HashEmbeddingProvider()
+        query_vec = embedder.embed([args.query])[0]
+        hits = store.query(query_vec, top_k=int(args.top_k))
+        expand = getattr(args, "expand_graph", None)
+        kinds = _kinds_from_args(getattr(args, "kind", None)) if expand is not None else None
+        graph_cache: dict[str, list[dict[str, Any]]] = {}
+        out_hits: list[dict[str, Any]] = []
+        for h in hits:
+            meta_d = dict(h.metadata or {})
+            row: dict[str, Any] = {
+                "id": h.id,
+                "score": h.score,
+                "document": h.document,
+                "item_key": meta_d.get("item_key"),
+                "path": meta_d.get("path"),
+                "metadata": meta_d,
+            }
+            if expand is not None:
+                key = row.get("item_key")
+                if not key:
+                    row["neighbors"] = []
+                elif key in graph_cache:
+                    row["neighbors"] = graph_cache[key]
+                else:
+                    try:
+                        g = query_graph(engine, start=str(key), depth=int(expand), kinds=kinds)
+                        neighbors = [n for n in (g.get("nodes") or []) if n.get("id") != key]
+                    except Exception:
+                        neighbors = []
+                    graph_cache[str(key)] = neighbors
+                    row["neighbors"] = neighbors
+            out_hits.append(row)
+        result = {
+            "event": "hits",
+            "query": args.query,
+            "backend": backend,
+            "hits": out_hits,
+        }
+        if args.json:
+            _json_print(result)
+        else:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    finally:
+        engine.close()
+
+
 def cmd_graph_edge_remove(args: argparse.Namespace) -> int:
     _, _, meta = _data_paths(Path(args.data_dir))
     engine = open_engine(args.engine, meta)
@@ -484,6 +617,41 @@ def build_parser() -> argparse.ArgumentParser:
     er = edge_sub.add_parser("remove", help="delete a graph edge", parents=[common])
     add_edge_keys(er)
     er.set_defaults(func=cmd_graph_edge_remove)
+
+    search = sub.add_parser("search", help="semantic search over backed-up markdown", parents=[common])
+    search_sub = search.add_subparsers(dest="search_command", required=True)
+
+    def add_vector_backend(sp: argparse.ArgumentParser) -> None:
+        sp.add_argument(
+            "--vector-backend",
+            choices=["chroma", "memory"],
+            default=None,
+            help="vector store backend (default: chroma if installed, else error)",
+        )
+
+    si = search_sub.add_parser("index", help="chunk, embed, and upsert into VectorStore", parents=[common])
+    add_vector_backend(si)
+    si.set_defaults(func=cmd_search_index)
+
+    ss = search_sub.add_parser("semantic", help="embed query and retrieve nearest chunks", parents=[common])
+    ss.add_argument("query", help="search query text")
+    ss.add_argument("--top-k", type=int, default=10, dest="top_k", help="number of hits (default 10)")
+    add_vector_backend(ss)
+    ss.add_argument(
+        "--expand-graph",
+        type=int,
+        default=None,
+        dest="expand_graph",
+        metavar="N",
+        help="BFS graph depth from each hit item_key (best-effort neighbors)",
+    )
+    ss.add_argument(
+        "--kind",
+        action="append",
+        default=None,
+        help="edge kind filter for --expand-graph (repeatable); use 'all' for no filter",
+    )
+    ss.set_defaults(func=cmd_search_semantic)
 
     return p
 
