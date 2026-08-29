@@ -2,7 +2,7 @@
 
 Backup Zhihu **collections / pins / asked questions / followed questions / votes** to local markdown + assets, with checkpoint resume and default incremental sync.
 
-Based on [zanghuaren/ZhiHu-Collection-To-Markdown](https://github.com/zanghuaren/ZhiHu-Collection-To-Markdown) (legacy `Main.py` kept for reference).
+Based on [zanghuaren/ZhiHu-Collection-To-Markdown](https://github.com/zanghuaren/ZhiHu-Collection-To-Markdown) (upstream single-file script quarantined under `legacy/`).
 
 ## Install
 
@@ -68,7 +68,7 @@ See `AGENTS.md`, `.cursor/rules/zhvault.mdc`, and `docs/agent-runbook.md`.
 
 ## Legacy
 
-`Main.py` still exports a single collection list to title-based markdown. Prefer `zhvault` for new runs.
+The upstream `Main.py` lives in `legacy/` for historical reference only; it is unsupported. Use `zhvault` and `src/` for all runs and development.
 
 ## Disclaimer
 

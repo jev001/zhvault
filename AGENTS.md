@@ -80,7 +80,7 @@ Social / graph notes:
 2. Prefer incremental; use `--full` only when explicitly required.
 3. Never commit `Cookies.json` / `data/meta/**` secrets.
 4. Zhihu-side follow/unfollow / collect/uncollect / question follow only via `account plan` (safe) + `account apply` with `--i-understand-danger` and `--confirm APPLY`. Never auto-write after backup.
-5. Keep `Main.py` as reference until migration is complete; new work goes in `src/` (top-level modules under the import root).
+5. Do not extend `legacy/Main.py`; new work goes in `src/` (top-level modules under the import root). The legacy script is historical reference only.
 6. Design/plan docs: `docs/superpowers/specs/`, `docs/superpowers/plans/`.
 
 ## Verify
