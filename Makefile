@@ -11,10 +11,10 @@ test:
 	pytest
 
 lint:
-	ruff check src tests
+	ruff check src
 
 fmt:
-	ruff check --fix src tests
+	ruff check --fix src
 
 build:
 	python -m build
