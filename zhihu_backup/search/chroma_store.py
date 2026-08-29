@@ -73,3 +73,6 @@ class ChromaVectorStore:
     def clear(self) -> None:
         self._client.delete_collection(_COLLECTION)
         self._collection = self._client.get_or_create_collection(name=_COLLECTION)
+
+    def count(self) -> int:
+        return self._collection.count()

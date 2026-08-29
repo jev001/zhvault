@@ -20,7 +20,7 @@ from zhihu_backup.http_client import ZhihuClient
 from zhihu_backup.models import GraphEdge
 from zhihu_backup.pipeline import Pipeline
 from zhihu_backup.search.embed import HashEmbeddingProvider
-from zhihu_backup.search.index import build_index
+from zhihu_backup.search.index import build_index, read_manifest
 from zhihu_backup.search.store import VectorBackendError, open_vector_store
 from zhihu_backup.sources import build_sources
 from zhihu_backup.storage import open_engine
@@ -456,10 +456,20 @@ def cmd_search_semantic(args: argparse.Namespace) -> int:
     engine = open_engine(args.engine, meta)
     try:
         vectors_root = _vectors_root(meta, args.engine)
+        manifest_path = vectors_root / "manifest.json"
+        manifest = read_manifest(manifest_path)
         try:
             store = open_vector_store(backend, vectors_root)
         except VectorBackendError as e:
             return _cmd_fail(args, str(e))
+        if manifest is not None and manifest.get("backend") != backend:
+            return _cmd_fail(
+                args,
+                f"vector index backend mismatch: manifest has {manifest.get('backend')!r}, "
+                f"requested {backend!r}; re-run `search index --vector-backend {backend}`",
+            )
+        if manifest is None and store.count() == 0:
+            return _cmd_fail(args, "no vector index found; run search index first")
         embedder = HashEmbeddingProvider()
         query_vec = embedder.embed([args.query])[0]
         hits = store.query(query_vec, top_k=int(args.top_k))

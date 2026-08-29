@@ -99,3 +99,6 @@ class MemoryVectorStore:
     def clear(self) -> None:
         self._records.clear()
         self._save()
+
+    def count(self) -> int:
+        return len(self._records)

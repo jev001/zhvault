@@ -27,6 +27,8 @@ class VectorStore(Protocol):
 
     def clear(self) -> None: ...
 
+    def count(self) -> int: ...
+
 
 _BACKENDS = ("memory", "chroma")
 

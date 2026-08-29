@@ -38,6 +38,18 @@ def _resolve_path(contents_root: Path, stored: str) -> Path | None:
     return None
 
 
+_MIN_BODY_CHARS = 80
+
+
+def read_manifest(path: Path) -> dict[str, Any] | None:
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
 def _manifest_mismatch(path: Path, embedder: EmbeddingProvider) -> bool:
     if not path.is_file():
         return False
@@ -77,6 +89,9 @@ def build_index(
             skipped += 1
             continue
         body = _split_frontmatter(md_path.read_text(encoding="utf-8"))
+        if len(body.strip()) < _MIN_BODY_CHARS:
+            skipped += 1
+            continue
         chunks = chunk_markdown(body)
         if not chunks:
             skipped += 1
@@ -99,6 +114,7 @@ def build_index(
             )
         items += 1
 
+    store.clear()
     if records:
         store.upsert(records)
 

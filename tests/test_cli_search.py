@@ -14,7 +14,8 @@ def _seed_item(tmp_path: Path, *, with_edge: bool = False) -> None:
     md_path = contents / rel
     md_path.parent.mkdir(parents=True)
     md_path.write_text(
-        f"---\ntitle: Fixture\n---\n\n# Heading\n\n{PHRASE} and some more text.\n",
+        f"---\ntitle: Fixture\n---\n\n# Heading\n\n{PHRASE} and some more text.\n\n"
+        + ("padding for index threshold " * 3),
         encoding="utf-8",
     )
     eng = open_engine("sqlite", tmp_path / "meta")
@@ -187,3 +188,61 @@ def test_search_index_fails_without_backend_when_chroma_missing(monkeypatch, tmp
     text = json.dumps(payload)
     assert "chroma" in text.lower() or "install" in text.lower()
     assert "zhihu-backup[chroma]" in text or "pip install" in text
+
+
+def test_search_semantic_no_index_fails(tmp_path, capsys):
+    rc = main(
+        [
+            "search",
+            "semantic",
+            PHRASE,
+            "--vector-backend",
+            "memory",
+            "--json",
+            "--data-dir",
+            str(tmp_path),
+        ]
+    )
+    assert rc != 0
+    out = json.loads(capsys.readouterr().out.strip())
+    assert out["event"] == "error"
+    assert "search index" in out["error"].lower()
+
+
+def test_search_semantic_backend_mismatch_fails(tmp_path, capsys):
+    _seed_item(tmp_path)
+    rc = main(
+        [
+            "search",
+            "index",
+            "--vector-backend",
+            "memory",
+            "--json",
+            "--data-dir",
+            str(tmp_path),
+        ]
+    )
+    assert rc == 0
+    capsys.readouterr()
+
+    manifest = tmp_path / "meta" / "sqlite" / "vectors" / "manifest.json"
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    data["backend"] = "chroma"
+    manifest.write_text(json.dumps(data), encoding="utf-8")
+
+    rc = main(
+        [
+            "search",
+            "semantic",
+            PHRASE,
+            "--vector-backend",
+            "memory",
+            "--json",
+            "--data-dir",
+            str(tmp_path),
+        ]
+    )
+    assert rc != 0
+    out = json.loads(capsys.readouterr().out.strip())
+    assert out["event"] == "error"
+    assert "backend mismatch" in out["error"].lower()

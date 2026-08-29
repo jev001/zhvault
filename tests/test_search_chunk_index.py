@@ -81,7 +81,10 @@ def test_build_index_model_mismatch_clears_then_reindexes(tmp_path: Path):
     rel = "pins/me/pin_9.md"
     md_path = contents / rel
     md_path.parent.mkdir(parents=True)
-    md_path.write_text("fresh body for reindex\n", encoding="utf-8")
+    md_path.write_text(
+        "fresh body for reindex\n\n" + ("padding text " * 20),
+        encoding="utf-8",
+    )
 
     engine = SqliteEngine(tmp_path / "state.sqlite")
     engine.upsert_item(
@@ -117,4 +120,77 @@ def test_build_index_model_mismatch_clears_then_reindexes(tmp_path: Path):
     assert manifest["model_id"] == "hash-v1"
     assert manifest["dimensions"] == 32
     assert manifest["chunks"] == stats["chunks"]
+    engine.close()
+
+
+def test_build_index_purges_stale_chunks_when_item_removed(tmp_path: Path):
+    from zhihu_backup.search.index import build_index
+
+    contents = tmp_path / "contents"
+    rel_keep = "collections/me/answer_1_2.md"
+    rel_drop = "collections/me/answer_3_4.md"
+    for rel in (rel_keep, rel_drop):
+        md_path = contents / rel
+        md_path.parent.mkdir(parents=True, exist_ok=True)
+        md_path.write_text(
+            f"---\ntitle: {rel}\n---\n\n# Heading\n\n" + ("lorem ipsum " * 150),
+            encoding="utf-8",
+        )
+
+    engine = SqliteEngine(tmp_path / "state.sqlite")
+    engine.upsert_item(
+        ItemRecord(key="answer:1:2", item_type="answer", zhihu_id="2", title="Keep", path=rel_keep)
+    )
+    engine.upsert_item(
+        ItemRecord(key="answer:3:4", item_type="answer", zhihu_id="4", title="Drop", path=rel_drop)
+    )
+
+    vectors = tmp_path / "vectors"
+    store = MemoryVectorStore()
+    embedder = HashEmbeddingProvider()
+    build_index(engine, contents, vectors, store=store, embedder=embedder)
+    assert any(h.metadata.get("item_key") == "answer:3:4" for h in store.query(embedder.embed(["lorem"])[0], top_k=50))
+
+    engine.upsert_item(
+        ItemRecord(key="answer:3:4", item_type="answer", zhihu_id="4", title="Drop", path=None)
+    )
+    build_index(engine, contents, vectors, store=store, embedder=embedder)
+
+    hits = store.query(embedder.embed(["lorem"])[0], top_k=50)
+    item_keys = {h.metadata.get("item_key") for h in hits}
+    assert "answer:3:4" not in item_keys
+    assert "answer:1:2" in item_keys
+    engine.close()
+
+
+def test_build_index_purges_stale_chunks_when_fewer_chunks(tmp_path: Path):
+    from zhihu_backup.search.index import build_index
+
+    contents = tmp_path / "contents"
+    rel = "collections/me/answer_1_2.md"
+    md_path = contents / rel
+    md_path.parent.mkdir(parents=True)
+    long_body = "# Heading\n\n" + ("word " * 400)
+    md_path.write_text(f"---\ntitle: Fixture\n---\n\n{long_body}", encoding="utf-8")
+
+    engine = SqliteEngine(tmp_path / "state.sqlite")
+    engine.upsert_item(
+        ItemRecord(key="answer:1:2", item_type="answer", zhihu_id="2", title="Fixture", path=rel)
+    )
+
+    vectors = tmp_path / "vectors"
+    store = MemoryVectorStore()
+    embedder = HashEmbeddingProvider()
+    stats1 = build_index(engine, contents, vectors, store=store, embedder=embedder)
+    assert stats1["chunks"] >= 2
+    assert any(h.id.startswith("answer:1:2#1") for h in store.query(embedder.embed(["word"])[0], top_k=50))
+
+    short_body = "# Heading\n\n" + ("word " * 30)
+    md_path.write_text(f"---\ntitle: Fixture\n---\n\n{short_body}", encoding="utf-8")
+    stats2 = build_index(engine, contents, vectors, store=store, embedder=embedder)
+    assert stats2["chunks"] == 1
+
+    hits = store.query(embedder.embed(["word"])[0], top_k=50)
+    assert all(not h.id.startswith("answer:1:2#1") for h in hits)
+    assert hits[0].id == "answer:1:2#0"
     engine.close()
