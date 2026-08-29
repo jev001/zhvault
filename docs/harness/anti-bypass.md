@@ -8,7 +8,7 @@ The green gate is `make gate` locally and **harness-gate** CI remotely (see [bui
 2. **`--no-gpg-sign` / hook skips** used specifically to avoid the harness.
 3. **Fake green tests** — empty tests, `assert True` placeholders, deleting failing tests, or marking real failures `skip` without product cause, solely to force green.
 4. **Gutting the linter** — setting `lint.select` empty, ignore-all, or removing `ruff.toml` to silence `make gate`.
-5. **Removing the gate** — deleting `src/tests/test_harness_invariants.py`, `.github/workflows/harness-gate.yml`, or rewriting CI to a no-op without human approval in the same change.
+5. **Removing the gate** — deleting `tests/test_harness_invariants.py`, `.github/workflows/harness-gate.yml`, or rewriting CI to a no-op without human approval in the same change.
 6. **Claiming green without evidence** — stating “tests passed” without actually running `make gate` in this repository.
 7. **Self-monkeypatching the gate** in the same PR/commit set (e.g. patching pytest/ruff out) without explicit human approval.
 

@@ -6,6 +6,15 @@ Based on [zanghuaren/ZhiHu-Collection-To-Markdown](https://github.com/zanghuaren
 
 ## Install
 
+Prefer [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv sync --extra dev
+source .venv/bin/activate   # optional; or use: uv run zhvault ...
+```
+
+Or classic venv + pip:
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -43,15 +52,17 @@ Engines: `sqlite` (default), `json`, `rocksdb` (`rocks` alias; needs `pip instal
 
 ## Development
 
-Code lives under `src/` as the setuptools import root (imports are `cli`, `storage`, … — not `import zhvault`).
+Layout (Django-style): `src/` = installable code; `tests/` = suite at repo root.
 
 Agent / vibe constraints: [HARNESS.md](HARNESS.md) (taxonomy: python / frontend / build / config under `docs/harness/`).
 
 ```bash
-make sync    # editable install + dev deps
-pre-commit install   # once: local hooks for the green gate
-make gate    # required green: ruff + full pytest
-make build   # wheel with zhvault console script
+make sync       # uv sync --extra dev (falls back to pip)
+make sync-all   # all optional extras (chroma/kuzu/rocksdb/…)
+pre-commit install
+make gate       # required green: ruff + full pytest
+make build
+uv run zhvault status --json
 ```
 
 ## Data layout

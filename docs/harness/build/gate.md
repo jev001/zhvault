@@ -5,7 +5,7 @@ Local and remote mechanical gate. Tool files stay at **repo root** (ecosystem de
 ## Required local green
 
 ```bash
-make gate    # ruff check src && pytest
+make gate    # uv run ruff check src tests && uv run pytest
 ```
 
 Defined in root [`Makefile`](../../../Makefile) (`gate` target). Do not treat `make test` alone as sufficient for completion.
@@ -19,7 +19,7 @@ Defined in root [`Makefile`](../../../Makefile) (`gate` target). Do not treat `m
 ## CI
 
 - Workflow: [`.github/workflows/harness-gate.yml`](../../../.github/workflows/harness-gate.yml)
-- Runs `pip install -e ".[dev,chroma,kuzu]"` then `make gate` on push/PR to `master`
+- Uses `uv sync --extra dev --extra chroma --extra kuzu --extra rocksdb` then `make gate` on push/PR to `master`
 - Human one-time: enable branch protection → require status check **harness-gate**
 
 ## Related

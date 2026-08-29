@@ -1,6 +1,6 @@
 ---
 description: Do not weaken zhvault harness green gate
-globs: HARNESS.md,docs/harness/**/*,.github/**/*,Makefile,ruff.toml,.pre-commit-config.yaml,src/tests/test_harness_invariants.py
+globs: HARNESS.md,docs/harness/**/*,.github/**/*,Makefile,ruff.toml,.pre-commit-config.yaml,tests/test_harness_invariants.py
 alwaysApply: false
 ---
 

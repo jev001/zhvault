@@ -5,9 +5,8 @@ Where tooling lives and **why** it stays at the repo root. Agents must not reloc
 | File | Bucket | Why at root |
 |------|--------|-------------|
 | `pyproject.toml` | python / packaging | setuptools / uv / pip expect project root |
-| `uv.lock` | python / packaging | lockfile beside `pyproject.toml` |
-| `ruff.toml` | python / lint | default discovery; gate + invariants assert path |
-| `requirements.txt` | python | legacy/minimal pin list |
+| `requirements.txt` | python | thin pointer to `uv sync` / `pip install -e ".[dev]"` |
+| `uv.lock` | python / packaging | uv lockfile (committed) |
 | `.pre-commit-config.yaml` | build | pre-commit only loads from git root |
 | `Makefile` | build | conventional entry; `make gate` |
 | `.github/workflows/harness-gate.yml` | build | GitHub Actions convention |

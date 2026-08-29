@@ -7,7 +7,7 @@ from pathlib import Path
 
 from models import content_filename
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
 WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
@@ -68,7 +68,7 @@ def test_gate_files_present():
     required = [
         ROOT / "ruff.toml",
         ROOT / ".github" / "workflows" / "harness-gate.yml",
-        ROOT / "src" / "tests" / "test_harness_invariants.py",
+        ROOT / "tests" / "test_harness_invariants.py",
         ROOT / "HARNESS.md",
         ROOT / "Makefile",
         ROOT / "docs" / "harness" / "python" / "invariants.md",

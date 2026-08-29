@@ -8,8 +8,8 @@ alwaysApply: true
 
 - **Harness:** `HARNESS.md` — taxonomy: `docs/harness/{python,frontend,build,config}/`. Required green: `make gate`. No magic bypass (`docs/harness/anti-bypass.md`).
 - **CLI:** `zhvault` (deprecated script alias: `zhihu-backup` only).
-- **Code:** under `src/` as setuptools import root — imports are top-level (`cli`, `storage`, …), not `import zhvault`. Tests in `src/tests/`.
-- **Dev:** `make sync`, `pre-commit install`, `make gate`.
+- **Code:** under `src/` as setuptools import root — imports are top-level (`cli`, `storage`, …), not `import zhvault`. Tests in `tests/` (repo root).
+- **Dev:** `make sync` (uv), `pre-commit install`, `make gate`.
 - Default sync is incremental; do not force `--full` unless asked.
 - Cookie/state live in `data/meta/`; never commit secrets.
 - CLI agent mode: prefer `--json` (stdout JSON, stderr logs).

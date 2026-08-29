@@ -31,11 +31,10 @@ zhihu-backup = "cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-exclude = ["tests*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-testpaths = ["src/tests"]
+testpaths = ["tests"]
 markers = [
     "chroma: tests that require the optional chromadb extra",
     "kuzu: tests that require the optional kuzu extra",
@@ -46,4 +45,7 @@ markers = [
 # Rule selection lives in ./ruff.toml (single source of truth).
 line-length = 100
 target-version = "py310"
-src = ["src"]
+src = ["src", "tests"]
+
+[tool.uv]
+package = true

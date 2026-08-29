@@ -10,8 +10,8 @@ Backup Zhihu collections / pins / asked questions / followed questions / votes /
 
 - **CLI / project name:** `zhvault` (console script). Deprecated alias: `zhihu-backup` only — no `python -m zhihu_backup`.
 - **Code:** lives under `src/` as the setuptools import root. Imports are top-level (`cli`, `storage`, `mutate`, …) — not `import zhvault` or `import zhihu_backup`.
-- **Tests:** `src/tests/` (same suite; excluded from the installed package).
-- **Dev:** `make sync` (editable install + dev deps), then `pre-commit install` once; verify with **`make gate`**.
+- **Tests:** `tests/` at repo root (Django-style; not inside the installable package).
+- **Dev:** `make sync` (`uv sync --extra dev`, falls back to pip); then `pre-commit install` once; verify with **`make gate`**.
 
 ## Data layout
 

@@ -4,13 +4,13 @@ repos:
     rev: v0.16.5
     hooks:
       - id: ruff
-        args: [src]
+        args: [src, tests]
 
   - repo: local
     hooks:
       - id: zhvault-pytest
         name: zhvault pytest (harness gate)
-        entry: pytest
+        entry: uv run pytest
         language: system
         pass_filenames: false
         always_run: true

@@ -21,7 +21,7 @@ Shared:
 
 1. **Instructions** — this file + taxonomy above
 2. **Mechanical green gate** — `make gate` (ruff + full pytest); pre-commit; GitHub Actions `harness-gate`
-3. **Invariants** — architecture tests in `src/tests/test_harness_invariants.py`
+3. **Invariants** — architecture tests in `tests/test_harness_invariants.py`
 
 ## Green gate (required)
 
