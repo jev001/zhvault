@@ -19,6 +19,7 @@ dependencies = [
 dev = ["pytest>=8.0", "ruff>=0.6", "build>=1.2", "pre-commit>=3.5"]
 chroma = ["chromadb>=0.5"]
 kuzu = ["kuzu>=0.4"]
+rocksdb = ["rocksdict>=0.3"]
 search-ml = ["sentence-transformers>=3.0"]
 
 [project.scripts]
@@ -38,6 +39,7 @@ testpaths = ["src/tests"]
 markers = [
     "chroma: tests that require the optional chromadb extra",
     "kuzu: tests that require the optional kuzu extra",
+    "rocksdb: tests that require the optional rocksdict (zhvault[rocksdb]) extra",
 ]
 
 [tool.ruff]

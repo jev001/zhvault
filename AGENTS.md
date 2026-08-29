@@ -29,7 +29,7 @@ data/
 - Meta key: `{type}:{parent_id}:{zhihu_id}` or `{type}:{zhihu_id}`
 - Frontmatter + `items.extra`: typed business IDs (`answer_id`/`question_id`, `article_id`/`column_id`, …) via `business_extra`
 - Assets: prefer original zhimg URLs (strip `_720w` etc.); meta stores `source_url`/`origin_url`; default MD uses HTML comments + Obsidian `![[assets/{file}]]` plus frontmatter `assets: [{file,path,source,origin}]`. Override with `--asset-link rel|wikilink|assets-root`. Vault/site root = `data/` for Obsidian / Hexo / Next (`public/assets`).
-- State engines: `--engine sqlite|json|rocksdb` (rocksdb is a file-backed stub in MVP)
+- State engines: `--engine sqlite|json|rocksdb` (`rocks` is an alias of `rocksdb`). RocksDB needs `pip install 'zhvault[rocksdb]'` (rocksdict).
 
 ## Commands
 
@@ -66,6 +66,7 @@ Optional extras:
 - `pip install 'zhvault[chroma]'` — durable Chroma vector index. Default `--vector-backend` is chroma when importable; otherwise the CLI fails with an install hint (pass `--vector-backend memory` only for tests).
 - `pip install 'zhvault[search-ml]'` — local embeddings via sentence-transformers. Omitted `--embed-provider` defaults to `local` when importable; otherwise the CLI fails with an install hint (pass `--embed-provider hash` for CI/tests, or `http` with `--embed-api-base` / `--embed-model`; API key from `--embed-api-key` or `ZHIHU_EMBED_API_KEY`).
 - `pip install 'zhvault[kuzu]'` — optional Kuzu derived graph index at `meta/{engine}/graph_query/kuzu/`. `graph sync --backend kuzu` builds it; `graph query --backend kuzu` requires sync (no silent fallback). `--backend auto` uses Kuzu when synced and importable, else in-memory BFS; `--backend memory` always BFS.
+- `pip install 'zhvault[rocksdb]'` — real RocksDB meta engine via rocksdict (`--engine rocksdb` or alias `rocks`). Without the extra, opening that engine fails with an install hint (no silent JSON fallback).
 
 Social / graph notes:
 

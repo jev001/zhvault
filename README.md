@@ -39,7 +39,7 @@ zhvault resume
 
 (`zhihu-backup` remains as a deprecated script alias.)
 
-Engines: `sqlite` (default), `json`, `rocksdb` (MVP file-backed stub).
+Engines: `sqlite` (default), `json`, `rocksdb` (`rocks` alias; needs `pip install 'zhvault[rocksdb]'`).
 
 ## Development
 

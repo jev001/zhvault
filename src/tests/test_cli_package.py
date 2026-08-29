@@ -7,6 +7,19 @@ def runner():
     return CliRunner()
 
 
+def test_main_no_args_shows_help_without_traceback():
+    """Bare `zhvault` must not raise; Typer NoArgsIsHelpError → exit code."""
+    from cli import main
+
+    assert main([]) == 2
+
+
+def test_main_help_flag_exits_zero():
+    from cli import main
+
+    assert main(["--help"]) == 0
+
+
 @pytest.mark.parametrize(
     "argv",
     [

@@ -125,7 +125,9 @@ def require_max_depth_mvp(n: int) -> str | None:
 
 
 def engine_meta_dir(meta: Path, engine_name: str) -> Path:
-    return Path(meta) / (engine_name or "sqlite").lower()
+    from storage import normalize_engine_name
+
+    return Path(meta) / normalize_engine_name(engine_name)
 
 
 def vectors_root(meta: Path, engine_name: str) -> Path:
