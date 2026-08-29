@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -167,6 +168,76 @@ def _refresh_people_wikilinks(
         )
 
 
+_ORIGIN_RANK = {"manual": 3, "api": 2, "derived": 1}
+
+
+def load_unified_edge_rows(engine: StorageEngine) -> list[dict[str, str]]:
+    """Same derived+persisted merge as rebuild (manual > api > derived)."""
+    items = engine.list_items()
+    membership = engine.list_membership()
+    _, derived = derive_content_edges(items, membership)
+    persisted = engine.list_graph_edges()
+    edge_rows = derived + [
+        {"from": e.from_id, "to": e.to_id, "kind": e.kind, "origin": e.origin}
+        for e in persisted
+    ]
+    best: dict[tuple[str, str, str], dict[str, str]] = {}
+    for row in edge_rows:
+        k = (row["from"], row["to"], row["kind"])
+        if k not in best or _ORIGIN_RANK.get(row["origin"], 0) >= _ORIGIN_RANK.get(
+            best[k]["origin"], 0
+        ):
+            best[k] = row
+    return list(best.values())
+
+
+def query_graph(
+    engine: StorageEngine,
+    *,
+    start: str,
+    depth: int = 1,
+    kinds: Optional[set[str]] = None,
+) -> dict[str, Any]:
+    """
+    BFS along directed edges where edge['kind'] in kinds (or all if kinds is None).
+    Returns {"start", "depth", "kinds", "nodes": [...], "edges": [...]} for the subgraph reached.
+    """
+    rows = load_unified_edge_rows(engine)
+    if kinds is not None:
+        rows = [e for e in rows if e["kind"] in kinds]
+    adj: dict[str, list[dict[str, str]]] = {}
+    for e in rows:
+        adj.setdefault(e["from"], []).append(e)
+    seen_nodes = {start}
+    seen_edges: list[dict[str, str]] = []
+    q: deque[tuple[str, int]] = deque([(start, 0)])
+    while q:
+        node, d = q.popleft()
+        if d >= depth:
+            continue
+        for e in adj.get(node, []):
+            seen_edges.append(e)
+            nxt = e["to"]
+            if nxt not in seen_nodes:
+                seen_nodes.add(nxt)
+                q.append((nxt, d + 1))
+    items = {i.key: i for i in engine.list_items()}
+    nodes = []
+    for nid in sorted(seen_nodes):
+        if nid in items:
+            nodes.append(_node_from_item(items[nid]))
+        else:
+            typ = nid.split(":", 1)[0] if ":" in nid else "unknown"
+            nodes.append(_stub(nid, typ))
+    return {
+        "start": start,
+        "depth": depth,
+        "kinds": sorted(kinds) if kinds is not None else None,
+        "nodes": nodes,
+        "edges": seen_edges,
+    }
+
+
 def rebuild_graph(
     engine: StorageEngine,
     contents_root: Path,
@@ -177,22 +248,11 @@ def rebuild_graph(
 ) -> dict[str, Any]:
     items = engine.list_items()
     membership = engine.list_membership()
-    nodes, derived = derive_content_edges(items, membership)
+    nodes, _ = derive_content_edges(items, membership)
     persisted = engine.list_graph_edges()
     for e in persisted:
         nodes.setdefault(e.from_id, _stub(e.from_id, e.from_id.split(":", 1)[0]))
         nodes.setdefault(e.to_id, _stub(e.to_id, e.to_id.split(":", 1)[0]))
-    edge_rows = derived + [
-        {"from": e.from_id, "to": e.to_id, "kind": e.kind, "origin": e.origin}
-        for e in persisted
-    ]
-    # Dedup by (from,to,kind): prefer manual > api > derived
-    rank = {"manual": 3, "api": 2, "derived": 1}
-    best: dict[tuple[str, str, str], dict[str, str]] = {}
-    for row in edge_rows:
-        k = (row["from"], row["to"], row["kind"])
-        if k not in best or rank.get(row["origin"], 0) >= rank.get(best[k]["origin"], 0):
-            best[k] = row
     out = {
         "version": 1,
         "ego": ego,
@@ -200,7 +260,7 @@ def rebuild_graph(
         "max_depth_applied": 1,
         "generated_at": _now(),
         "nodes": sorted(nodes.values(), key=lambda n: n["id"]),
-        "edges": list(best.values()),
+        "edges": load_unified_edge_rows(engine),
     }
     meta_dir = Path(meta_dir)
     meta_dir.mkdir(parents=True, exist_ok=True)
