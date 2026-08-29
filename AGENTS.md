@@ -2,15 +2,17 @@
 
 ## Goal
 
-Backup Zhihu collections / pins / asked questions / followed questions / votes into local text + assets, with pluggable state engines and incremental resume.
+Backup Zhihu collections / pins / asked questions / followed questions / votes / social graph (following & followers) into local text + assets, with pluggable state engines and incremental resume.
 
 ## Layout
 
 ```
 data/
   contents/{collections|pins|asked_questions|followed_questions|votes}/{owner_id}/{type}_{parent?}_{zhihu_id}.md
+  contents/people/{url_token}.md
   assets/{sha16}{ext}
   meta/{sqlite|json|rocksdb}/...
+  meta/{sqlite|json|rocksdb}/graph.json   # derived export (graph rebuild only)
 ```
 
 - Filenames: `{type}_{parent_id}_{zhihu_id}.md` when parent exists (e.g. `answer_{qid}_{aid}`), else `{type}_{zhihu_id}.md` (no Chinese)
@@ -25,10 +27,20 @@ data/
 python -m zhihu_backup auth set-cookie Cookies.json
 python -m zhihu_backup status --json
 python -m zhihu_backup backup --source collection --json
+python -m zhihu_backup backup --source social --json
 python -m zhihu_backup resume --json
+python -m zhihu_backup graph rebuild --json
+python -m zhihu_backup graph edge add --from user:a --to user:b
+python -m zhihu_backup graph edge remove --from user:a --to user:b
 ```
 
 Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`, `--x-zse-96`, `--asset-workers`, `--json`.
+
+Social / graph notes:
+
+- `--source all` does **not** include `following` / `followers`; run `--source social` explicitly.
+- `graph rebuild` is **manual only** (not run after `backup` / `resume`); offline from stored items + membership + persisted `graph_edges`.
+- `--max-depth` defaults to `1`; values other than `1` are rejected (multi-hop crawl reserved for later).
 
 `--json`: events/summary on stdout; logs on stderr. Agent flow: `status --json` → auth if needed → `backup --json` → read `event=summary`.
 
@@ -49,3 +61,7 @@ Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`,
 - `--engine json` behaves like sqlite for the same contents tree
 - `status --json` / `backup --json` parse with `jq`
 - New content filenames contain no Chinese
+- `backup --source social` writes `contents/people/{url_token}.md` and upserts `follows` edges (`origin=api`)
+- `graph rebuild --json` → `meta/.../graph.json` with derived content edges + wikilinks in people MD
+- `graph edge add|remove` persists `origin=manual` edges (survive social sync)
+- `--max-depth 2` → exit 2 + clear error (MVP depth = 1 only)
