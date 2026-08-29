@@ -16,6 +16,7 @@ from zhihu_backup.auth import (
     set_cookie_from_file,
 )
 from zhihu_backup.graph import query_graph, rebuild_graph
+from zhihu_backup.graph_kuzu import KuzuBackendError, query_kuzu, sync_to_kuzu
 from zhihu_backup.http_client import ZhihuClient
 from zhihu_backup.models import GraphEdge
 from zhihu_backup.pipeline import Pipeline
@@ -150,6 +151,37 @@ def _chroma_importable() -> bool:
 
 def _sentence_transformers_importable() -> bool:
     return importlib.util.find_spec("sentence_transformers") is not None
+
+
+def _kuzu_importable() -> bool:
+    return importlib.util.find_spec("kuzu") is not None
+
+
+def _kuzu_db_path(meta: Path, engine_name: str) -> Path:
+    return _engine_meta_dir(meta, engine_name) / "graph_query" / "kuzu"
+
+
+def _resolve_graph_query_backend(explicit: Optional[str], db_path: Path) -> str:
+    backend = explicit or "auto"
+    if backend == "memory":
+        return "memory"
+    if backend == "kuzu":
+        if not _kuzu_importable():
+            raise KuzuBackendError(
+                "kuzu backend requires kuzu. "
+                "Install with: pip install 'zhihu-backup[kuzu]'"
+            )
+        if not db_path.exists():
+            raise KuzuBackendError(
+                f"kuzu graph index not found at {db_path}; "
+                "run: python -m zhihu_backup graph sync --backend kuzu"
+            )
+        return "kuzu"
+    if backend == "auto":
+        if _kuzu_importable() and db_path.exists():
+            return "kuzu"
+        return "memory"
+    raise ValueError(f"unsupported graph query backend: {backend!r}")
 
 
 class EmbedProviderError(RuntimeError):
@@ -425,17 +457,52 @@ def cmd_graph_edge_add(args: argparse.Namespace) -> int:
         engine.close()
 
 
+def cmd_graph_sync(args: argparse.Namespace) -> int:
+    _, _, meta = _data_paths(Path(args.data_dir))
+    backend = getattr(args, "backend", None) or "kuzu"
+    if backend != "kuzu":
+        return _cmd_fail(args, f"unsupported graph sync backend: {backend!r} (only kuzu supported)")
+    engine = open_engine(args.engine, meta)
+    try:
+        db_path = _kuzu_db_path(meta, args.engine)
+        try:
+            stats = sync_to_kuzu(engine, db_path)
+        except KuzuBackendError as e:
+            return _cmd_fail(args, str(e))
+        summary = {"event": "summary", "backend": "kuzu", **stats}
+        if args.json:
+            _json_print(summary)
+        else:
+            print(json.dumps(summary, ensure_ascii=False, indent=2))
+        return 0
+    finally:
+        engine.close()
+
+
 def cmd_graph_query(args: argparse.Namespace) -> int:
     _, _, meta = _data_paths(Path(args.data_dir))
     engine = open_engine(args.engine, meta)
     try:
+        db_path = _kuzu_db_path(meta, args.engine)
+        try:
+            backend = _resolve_graph_query_backend(getattr(args, "backend", None), db_path)
+        except KuzuBackendError as e:
+            return _cmd_fail(args, str(e))
         kinds = None if args.kind and "all" in args.kind else (set(args.kind) if args.kind else None)
-        out = query_graph(
-            engine,
-            start=args.from_id,
-            depth=int(args.depth),
-            kinds=kinds,
-        )
+        if backend == "kuzu":
+            out = query_kuzu(
+                db_path,
+                start=args.from_id,
+                depth=int(args.depth),
+                kinds=kinds,
+            )
+        else:
+            out = query_graph(
+                engine,
+                start=args.from_id,
+                depth=int(args.depth),
+                kinds=kinds,
+            )
         if args.json:
             _json_print(out)
         else:
@@ -630,7 +697,16 @@ def build_parser() -> argparse.ArgumentParser:
     rb = g_sub.add_parser("rebuild", help="offline rebuild graph.json from meta", parents=[common])
     rb.set_defaults(func=cmd_graph_rebuild)
 
-    gq = g_sub.add_parser("query", help="BFS subgraph from a node key", parents=[common])
+    gs = g_sub.add_parser("sync", help="build derived graph query index", parents=[common])
+    gs.add_argument(
+        "--backend",
+        choices=["kuzu"],
+        default="kuzu",
+        help="derived index backend (default kuzu)",
+    )
+    gs.set_defaults(func=cmd_graph_sync)
+
+    gq = g_sub.add_parser("query", help="subgraph from a node key", parents=[common])
     gq.add_argument(
         "--from",
         dest="from_id",
@@ -646,6 +722,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=None,
         help="edge kind filter (repeatable); use 'all' for no filter",
+    )
+    gq.add_argument(
+        "--backend",
+        choices=["auto", "memory", "kuzu"],
+        default="auto",
+        help="query backend: auto (kuzu if synced), memory (BFS), or kuzu (require sync)",
     )
     gq.set_defaults(func=cmd_graph_query)
 

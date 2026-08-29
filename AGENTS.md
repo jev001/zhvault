@@ -31,7 +31,11 @@ python -m zhihu_backup backup --source collection --json
 python -m zhihu_backup backup --source social --json
 python -m zhihu_backup resume --json
 python -m zhihu_backup graph rebuild --json
+python -m zhihu_backup graph sync --backend kuzu --json
 python -m zhihu_backup graph query --from user:me --depth 2 --kind follows --json
+python -m zhihu_backup graph query --from user:me --depth 2 --backend auto --json
+python -m zhihu_backup graph query --from user:me --depth 2 --backend memory --json
+python -m zhihu_backup graph query --from user:me --depth 2 --backend kuzu --json
 python -m zhihu_backup graph edge add --from user:a --to user:b
 python -m zhihu_backup graph edge remove --from user:a --to user:b
 python -m zhihu_backup search index --json
@@ -46,12 +50,14 @@ Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`,
 Optional extras:
 - `pip install 'zhihu-backup[chroma]'` — durable Chroma vector index. Default `--vector-backend` is chroma when importable; otherwise the CLI fails with an install hint (pass `--vector-backend memory` only for tests).
 - `pip install 'zhihu-backup[search-ml]'` — local embeddings via sentence-transformers. Omitted `--embed-provider` defaults to `local` when importable; otherwise the CLI fails with an install hint (pass `--embed-provider hash` for CI/tests, or `http` with `--embed-api-base` / `--embed-model`; API key from `--embed-api-key` or `ZHIHU_EMBED_API_KEY`).
+- `pip install 'zhihu-backup[kuzu]'` — optional Kuzu derived graph index at `meta/{engine}/graph_query/kuzu/`. `graph sync --backend kuzu` builds it; `graph query --backend kuzu` requires sync (no silent fallback). `--backend auto` uses Kuzu when synced and importable, else in-memory BFS; `--backend memory` always BFS.
 
 Social / graph notes:
 
 - `--source all` does **not** include `following` / `followers`; run `--source social` explicitly.
 - `graph rebuild` is **manual only** (not run after `backup` / `resume`); offline from stored items + membership + persisted `graph_edges`.
-- `graph query` is offline BFS over unified edges (derived + persisted); `--json` prints the query result dict (nodes + edges).
+- `graph query` is offline BFS over unified edges (derived + persisted); `--json` prints the query result dict (nodes + edges). `--backend auto|memory|kuzu` selects in-memory BFS vs synced Kuzu index.
+- `graph sync --backend kuzu` writes derived index to `meta/{engine}/graph_query/kuzu/` (offline; does not mutate `graph_edges`).
 - `--max-depth` defaults to `1`; values other than `1` are rejected (multi-hop crawl reserved for later).
 
 `--json`: events/summary on stdout; logs on stderr. Agent flow: `status --json` → auth if needed → `backup --json` → read `event=summary`.
@@ -83,3 +89,6 @@ Social / graph notes:
 - `search semantic ... --expand-graph N` attaches `neighbors` from `query_graph` per hit (best-effort)
 - Missing chromadb and no `--vector-backend memory` → non-zero + `pip install 'zhihu-backup[chroma]'`
 - Missing `--embed-provider` and no sentence-transformers → non-zero + `pip install 'zhihu-backup[search-ml]'` or pass `--embed-provider hash|http`
+- `graph sync --backend kuzu` without kuzu package → non-zero + `pip install 'zhihu-backup[kuzu]'`
+- `graph query --backend kuzu` without prior sync → non-zero (no silent fallback to memory)
+- `graph query --backend memory` matches BFS on unified edges (same as pre-kuzu behavior)
