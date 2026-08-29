@@ -4,7 +4,7 @@ import argparse
 import json
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -14,10 +14,14 @@ from zhihu_backup.auth import (
     resolve_cookies,
     set_cookie_from_file,
 )
+from zhihu_backup.graph import rebuild_graph
 from zhihu_backup.http_client import ZhihuClient
+from zhihu_backup.models import GraphEdge
 from zhihu_backup.pipeline import Pipeline
 from zhihu_backup.sources import build_sources
 from zhihu_backup.storage import open_engine
+
+ME_URL = "https://www.zhihu.com/api/v4/me"
 
 log = logging.getLogger("zhihu_backup")
 
@@ -122,6 +126,32 @@ def _log_event(ev: dict[str, Any], *, verbose: bool) -> None:
         log.debug("event %s", ev)
 
 
+def require_max_depth_mvp(n: int) -> Optional[str]:
+    if int(n) != 1:
+        return f"--max-depth={n} not implemented yet (only 1 supported)"
+    return None
+
+
+def _engine_meta_dir(meta: Path, engine_name: str) -> Path:
+    return Path(meta) / (engine_name or "sqlite").lower()
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _resolve_ego(engine) -> Optional[str]:
+    cookies = engine.get_cookie()
+    if not cookies:
+        return None
+    try:
+        me = ZhihuClient(cookies).get_json(ME_URL)
+        token = str((me or {}).get("url_token") or (me or {}).get("id") or "")
+        return token or None
+    except Exception:
+        return None
+
+
 def cmd_auth(args: argparse.Namespace) -> int:
     _, _, meta = _data_paths(Path(args.data_dir))
     engine = open_engine(args.engine, meta)
@@ -153,6 +183,14 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
+    msg = require_max_depth_mvp(getattr(args, "max_depth", 1))
+    if msg:
+        if args.json:
+            _json_print({"event": "error", "error": msg})
+        else:
+            log.error(msg)
+        return 2
+
     data_dir = Path(args.data_dir)
     contents, assets, meta = _data_paths(data_dir)
     engine = open_engine(args.engine, meta)
@@ -259,6 +297,84 @@ def cmd_resume(args: argparse.Namespace) -> int:
     return _run_backup(args, resume=True)
 
 
+def cmd_graph_rebuild(args: argparse.Namespace) -> int:
+    data_dir = Path(args.data_dir)
+    contents, _, meta = _data_paths(data_dir)
+    engine = open_engine(args.engine, meta)
+    try:
+        ego = _resolve_ego(engine)
+        meta_dir = _engine_meta_dir(meta, args.engine)
+        out = rebuild_graph(
+            engine,
+            contents,
+            meta_dir,
+            ego=ego,
+            max_depth_requested=int(getattr(args, "max_depth", 1)),
+        )
+        summary = {
+            "event": "summary",
+            "nodes": len(out.get("nodes") or []),
+            "edges": len(out.get("edges") or []),
+        }
+        if args.json:
+            _json_print(summary)
+        else:
+            print(json.dumps(summary, ensure_ascii=False, indent=2))
+        return 0
+    finally:
+        engine.close()
+
+
+def cmd_graph_edge_add(args: argparse.Namespace) -> int:
+    _, _, meta = _data_paths(Path(args.data_dir))
+    engine = open_engine(args.engine, meta)
+    try:
+        engine.upsert_graph_edge(
+            GraphEdge(
+                from_id=args.from_id,
+                to_id=args.to_id,
+                kind=args.kind,
+                origin="manual",
+                seen_at=_now(),
+            )
+        )
+        result = {
+            "ok": True,
+            "from": args.from_id,
+            "to": args.to_id,
+            "kind": args.kind,
+            "origin": "manual",
+        }
+        if args.json:
+            _json_print(result)
+        else:
+            print(f"edge added {args.from_id} -> {args.to_id} ({args.kind})")
+        return 0
+    finally:
+        engine.close()
+
+
+def cmd_graph_edge_remove(args: argparse.Namespace) -> int:
+    _, _, meta = _data_paths(Path(args.data_dir))
+    engine = open_engine(args.engine, meta)
+    try:
+        engine.remove_graph_edge(args.from_id, args.to_id, args.kind)
+        result = {
+            "ok": True,
+            "from": args.from_id,
+            "to": args.to_id,
+            "kind": args.kind,
+            "removed": True,
+        }
+        if args.json:
+            _json_print(result)
+        else:
+            print(f"edge removed {args.from_id} -> {args.to_id} ({args.kind})")
+        return 0
+    finally:
+        engine.close()
+
+
 def build_parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--data-dir", default="data", help="root data directory")
@@ -293,6 +409,13 @@ def build_parser() -> argparse.ArgumentParser:
             default=8,
             help="parallel image download workers (default 8; use 1 for serial)",
         )
+        sp.add_argument(
+            "--max-depth",
+            type=int,
+            default=1,
+            dest="max_depth",
+            help="social crawl depth (MVP: only 1 supported)",
+        )
 
     b = sub.add_parser("backup", help="incremental backup (resumes checkpoints)", parents=[common])
     add_backup_flags(b)
@@ -301,6 +424,27 @@ def build_parser() -> argparse.ArgumentParser:
     r = sub.add_parser("resume", help="alias of backup (continue checkpoints)", parents=[common])
     add_backup_flags(r)
     r.set_defaults(func=cmd_resume)
+
+    g = sub.add_parser("graph", help="relationship graph helpers", parents=[common])
+    g_sub = g.add_subparsers(dest="graph_command", required=True)
+    rb = g_sub.add_parser("rebuild", help="offline rebuild graph.json from meta", parents=[common])
+    rb.set_defaults(func=cmd_graph_rebuild)
+
+    edge = g_sub.add_parser("edge", help="manual edge mutations", parents=[common])
+    edge_sub = edge.add_subparsers(dest="edge_command", required=True)
+
+    def add_edge_keys(sp: argparse.ArgumentParser) -> None:
+        sp.add_argument("--from", dest="from_id", required=True, help="from node key")
+        sp.add_argument("--to", dest="to_id", required=True, help="to node key")
+        sp.add_argument("--kind", default="follows", help="edge kind (default follows)")
+
+    ea = edge_sub.add_parser("add", help="upsert a manual graph edge", parents=[common])
+    add_edge_keys(ea)
+    ea.set_defaults(func=cmd_graph_edge_add)
+
+    er = edge_sub.add_parser("remove", help="delete a graph edge", parents=[common])
+    add_edge_keys(er)
+    er.set_defaults(func=cmd_graph_edge_remove)
 
     return p
 
