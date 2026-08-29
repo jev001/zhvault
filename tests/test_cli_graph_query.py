@@ -1,8 +1,8 @@
 import json
 
-from zhihu_backup.cli import build_parser, main
-from zhihu_backup.models import GraphEdge
-from zhihu_backup.storage import open_engine
+from cli import build_parser, main
+from models import GraphEdge
+from storage import open_engine
 
 
 def test_parser_graph_query():

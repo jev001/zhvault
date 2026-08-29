@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from zhihu_backup.models import NormalizedItem, business_extra
+from models import NormalizedItem, business_extra
 
 
 def _item(**kwargs) -> NormalizedItem:

@@ -1,9 +1,9 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from zhihu_backup.models import GraphEdge, ItemRecord
-from zhihu_backup.storage.sqlite_engine import SqliteEngine
-from zhihu_backup.graph import query_graph
+from models import GraphEdge, ItemRecord
+from storage.sqlite_engine import SqliteEngine
+from graph import query_graph
 
 
 def _seed(eng: SqliteEngine) -> None:

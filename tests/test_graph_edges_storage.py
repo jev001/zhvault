@@ -1,7 +1,7 @@
 from pathlib import Path
-from zhihu_backup.models import GraphEdge, ItemRecord
-from zhihu_backup.storage.sqlite_engine import SqliteEngine
-from zhihu_backup.storage.json_engine import JsonEngine
+from models import GraphEdge, ItemRecord
+from storage.sqlite_engine import SqliteEngine
+from storage.json_engine import JsonEngine
 
 
 def _edge(**kw):

@@ -1,11 +1,11 @@
 from unittest.mock import MagicMock
 
-from zhihu_backup.models import ItemRecord, NormalizedItem
-from zhihu_backup.pipeline import Pipeline
-from zhihu_backup.sources import build_sources
-from zhihu_backup.sources.base import Source
-from zhihu_backup.storage import open_engine
-from zhihu_backup.writers.person import PersonWriter
+from models import ItemRecord, NormalizedItem
+from pipeline import Pipeline
+from sources import build_sources
+from sources.base import Source
+from storage import open_engine
+from writers.person import PersonWriter
 
 
 def test_all_excludes_social():

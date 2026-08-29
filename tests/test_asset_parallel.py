@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from zhihu_backup.storage import open_engine
-from zhihu_backup.writers.asset import AssetWriter
+from storage import open_engine
+from writers.asset import AssetWriter
 
 
 def _resp(content: bytes = b"img", content_type: str = "image/png") -> MagicMock:
@@ -27,7 +27,7 @@ def test_localize_downloads_unique_urls(tmp_path: Path):
             "![c](https://cdn.example/c.png)",
         ]
     )
-    with patch("zhihu_backup.writers.asset.requests.get", side_effect=lambda *a, **k: _resp()) as get:
+    with patch("writers.asset.requests.get", side_effect=lambda *a, **k: _resp()) as get:
         out, localized, _refs = aw.localize_markdown(body, md_dir)
     assert get.call_count == 3
     assert "![[assets/" in out
@@ -43,7 +43,7 @@ def test_localize_dedupes_same_url(tmp_path: Path):
     md_dir = tmp_path / "md"
     md_dir.mkdir()
     body = "![a](https://cdn.example/same.png)\n![b](https://cdn.example/same.png)"
-    with patch("zhihu_backup.writers.asset.requests.get", return_value=_resp()) as get:
+    with patch("writers.asset.requests.get", return_value=_resp()) as get:
         out, localized, _refs = aw.localize_markdown(body, md_dir)
     assert get.call_count == 1
     assert len(localized) == 1
@@ -64,7 +64,7 @@ def test_localize_keeps_url_on_download_failure(tmp_path: Path):
             raise RuntimeError("boom")
         return _resp()
 
-    with patch("zhihu_backup.writers.asset.requests.get", side_effect=fake_get):
+    with patch("writers.asset.requests.get", side_effect=fake_get):
         out, localized, _refs = aw.localize_markdown(body, md_dir)
     assert "![bad](https://cdn.example/bad.png)" in out
     assert "![ok](https://cdn.example/ok.png)" not in out
@@ -84,7 +84,7 @@ def test_localize_skips_cached_asset(tmp_path: Path):
     aw = AssetWriter(assets, engine, workers=4)
     md_dir = tmp_path / "md"
     md_dir.mkdir()
-    with patch("zhihu_backup.writers.asset.requests.get") as get:
+    with patch("writers.asset.requests.get") as get:
         out, localized, _refs = aw.localize_markdown(f"![c]({url})", md_dir)
     get.assert_not_called()
     assert "cached0123456789.png" in out

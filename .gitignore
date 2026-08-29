@@ -12,3 +12,7 @@ __pycache__/
 .DS_Store
 *.sqlite
 *.tmp
+*.egg-info/
+.ruff_cache/
+dist/
+build/

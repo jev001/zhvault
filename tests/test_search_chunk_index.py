@@ -1,15 +1,15 @@
 import json
 from pathlib import Path
 
-from zhihu_backup.models import ItemRecord
-from zhihu_backup.search.embed import HashEmbeddingProvider
-from zhihu_backup.search.memory_store import MemoryVectorStore
-from zhihu_backup.search.types import VectorRecord
-from zhihu_backup.storage.sqlite_engine import SqliteEngine
+from models import ItemRecord
+from search.embed import HashEmbeddingProvider
+from search.memory_store import MemoryVectorStore
+from search.types import VectorRecord
+from storage.sqlite_engine import SqliteEngine
 
 
 def test_chunk_markdown_splits_long_text():
-    from zhihu_backup.search.chunk import chunk_markdown
+    from search.chunk import chunk_markdown
 
     short = "hello"
     assert chunk_markdown(short, max_chars=1200) == ["hello"]
@@ -22,7 +22,7 @@ def test_chunk_markdown_splits_long_text():
 
 
 def test_build_index_writes_manifest_and_is_idempotent(tmp_path: Path):
-    from zhihu_backup.search.index import build_index
+    from search.index import build_index
 
     contents = tmp_path / "contents"
     rel = "collections/me/answer_1_2.md"
@@ -75,7 +75,7 @@ def test_build_index_writes_manifest_and_is_idempotent(tmp_path: Path):
 
 
 def test_build_index_model_mismatch_clears_then_reindexes(tmp_path: Path):
-    from zhihu_backup.search.index import build_index
+    from search.index import build_index
 
     contents = tmp_path / "contents"
     rel = "pins/me/pin_9.md"
@@ -124,7 +124,7 @@ def test_build_index_model_mismatch_clears_then_reindexes(tmp_path: Path):
 
 
 def test_build_index_purges_stale_chunks_when_item_removed(tmp_path: Path):
-    from zhihu_backup.search.index import build_index
+    from search.index import build_index
 
     contents = tmp_path / "contents"
     rel_keep = "collections/me/answer_1_2.md"
@@ -164,7 +164,7 @@ def test_build_index_purges_stale_chunks_when_item_removed(tmp_path: Path):
 
 
 def test_build_index_purges_stale_chunks_when_fewer_chunks(tmp_path: Path):
-    from zhihu_backup.search.index import build_index
+    from search.index import build_index
 
     contents = tmp_path / "contents"
     rel = "collections/me/answer_1_2.md"

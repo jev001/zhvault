@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from zhihu_backup.search.store import VectorBackendError, open_vector_store
-from zhihu_backup.search.types import VectorRecord
+from search.store import VectorBackendError, open_vector_store
+from search.types import VectorRecord
 
 
 def test_open_chroma_missing_package_install_hint(monkeypatch, tmp_path: Path):

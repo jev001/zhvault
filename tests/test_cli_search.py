@@ -1,9 +1,9 @@
 import json
 from pathlib import Path
 
-from zhihu_backup.cli import build_parser, main, resolve_embed_provider
-from zhihu_backup.models import GraphEdge, ItemRecord
-from zhihu_backup.storage import open_engine
+from cli import build_parser, main, resolve_embed_provider
+from models import GraphEdge, ItemRecord
+from storage import open_engine
 
 PHRASE = "zebra quaternion backup fixture"
 HASH_FLAGS = ["--embed-provider", "hash"]
@@ -194,8 +194,8 @@ def test_search_semantic_expand_graph(tmp_path, capsys):
 
 
 def test_search_index_fails_without_embed_provider_when_st_missing(monkeypatch, tmp_path, capsys):
-    monkeypatch.setattr("zhihu_backup.cli._sentence_transformers_importable", lambda: False)
-    monkeypatch.setattr("zhihu_backup.cli._chroma_importable", lambda: True)
+    monkeypatch.setattr("cli._sentence_transformers_importable", lambda: False)
+    monkeypatch.setattr("cli._chroma_importable", lambda: True)
     rc = main(["search", "index", "--vector-backend", "memory", "--json", "--data-dir", str(tmp_path)])
     assert rc != 0
     err = capsys.readouterr()
@@ -205,7 +205,7 @@ def test_search_index_fails_without_embed_provider_when_st_missing(monkeypatch, 
 
 
 def test_search_index_fails_without_backend_when_chroma_missing(monkeypatch, tmp_path, capsys):
-    monkeypatch.setattr("zhihu_backup.cli._chroma_importable", lambda: False)
+    monkeypatch.setattr("cli._chroma_importable", lambda: False)
     rc = main(["search", "index", "--json", "--data-dir", str(tmp_path), *HASH_FLAGS])
     assert rc != 0
     err = capsys.readouterr()

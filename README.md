@@ -1,4 +1,4 @@
-# Zhihu Backup (`zhihu-backup`)
+# zhvault
 
 Backup Zhihu **collections / pins / asked questions / followed questions / votes** to local markdown + assets, with checkpoint resume and default incremental sync.
 
@@ -9,8 +9,7 @@ Based on [zanghuaren/ZhiHu-Collection-To-Markdown](https://github.com/zanghuaren
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-pip install -e .
+make sync
 ```
 
 ## Configure
@@ -31,12 +30,14 @@ Optional: pass `--x-zse-96` if Zhihu requires it.
 ## Usage
 
 ```bash
-python -m zhihu_backup auth set-cookie Cookies.json
-python -m zhihu_backup status --json
-python -m zhihu_backup backup --source collection
-python -m zhihu_backup backup --source all --engine sqlite
-python -m zhihu_backup resume
+zhvault auth set-cookie Cookies.json
+zhvault status --json
+zhvault backup --source collection
+zhvault backup --source all --engine sqlite
+zhvault resume
 ```
+
+(`zhihu-backup` remains as a deprecated script alias.)
 
 Engines: `sqlite` (default), `json`, `rocksdb` (MVP file-backed stub).
 
@@ -56,7 +57,7 @@ See `AGENTS.md`, `.cursor/rules/zhihu-backup.mdc`, and `docs/agent-runbook.md`.
 
 ## Legacy
 
-`Main.py` still exports a single collection list to title-based markdown. Prefer `zhihu_backup` for new runs.
+`Main.py` still exports a single collection list to title-based markdown. Prefer `zhvault` for new runs.
 
 ## Disclaimer
 

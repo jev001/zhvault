@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "zhihu-backup"
+name = "zhvault"
 version = "0.1.0"
 description = "Backup Zhihu collections/pins/questions/votes to markdown + assets"
 readme = "README.md"
@@ -15,18 +15,29 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6", "build>=1.2"]
 chroma = ["chromadb>=0.5"]
 kuzu = ["kuzu>=0.4"]
 search-ml = ["sentence-transformers>=3.0"]
 
 [project.scripts]
-zhihu-backup = "zhihu_backup.cli:main"
+zhvault = "cli:main"
+zhihu-backup = "cli:main"
+
+[tool.setuptools.package-dir]
+"" = "src"
 
 [tool.setuptools.packages.find]
-include = ["zhihu_backup*"]
+where = ["src"]
 
 [tool.pytest.ini_options]
+pythonpath = ["src"]
 markers = [
     "chroma: tests that require the optional chromadb extra",
     "kuzu: tests that require the optional kuzu extra",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src"]

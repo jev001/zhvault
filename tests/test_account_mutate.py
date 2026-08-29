@@ -8,12 +8,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from zhihu_backup.cli import build_parser, main
-from zhihu_backup.models import GraphEdge, ItemRecord
-from zhihu_backup.mutate.apply import ApplyGateError, apply_plan, check_apply_gates
-from zhihu_backup.mutate.endpoints import follow_user_url
-from zhihu_backup.mutate.plan import build_plan, parse_sources
-from zhihu_backup.storage import open_engine
+from cli import build_parser, main
+from models import GraphEdge, ItemRecord
+from mutate.apply import ApplyGateError, apply_plan, check_apply_gates
+from mutate.endpoints import follow_user_url
+from mutate.plan import build_plan, parse_sources
+from storage import open_engine
 
 
 def _seed_following(meta: Path, *, ego: str = "me", friends: list[str] | None = None) -> None:

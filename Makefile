@@ -1,0 +1,22 @@
+.PHONY: help sync install test lint fmt build zhvault
+
+help:
+	@echo "Targets: sync install test lint fmt build zhvault ARGS=..."
+
+sync install:
+	pip install -e ".[dev]"
+
+test:
+	pytest
+
+lint:
+	ruff check src tests
+
+fmt:
+	ruff check --fix src tests
+
+build:
+	python -m build
+
+zhvault:
+	zhvault $(ARGS)

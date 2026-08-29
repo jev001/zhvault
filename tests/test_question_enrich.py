@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from zhihu_backup.parse import enrich_question_detail, normalize_content, question_payload_from_row
+from parse import enrich_question_detail, normalize_content, question_payload_from_row
 
 
 def test_question_payload_from_row_nested():

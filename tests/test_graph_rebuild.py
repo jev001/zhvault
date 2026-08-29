@@ -1,7 +1,7 @@
 from pathlib import Path
-from zhihu_backup.models import GraphEdge, ItemRecord
-from zhihu_backup.storage.sqlite_engine import SqliteEngine
-from zhihu_backup.graph import rebuild_graph
+from models import GraphEdge, ItemRecord
+from storage.sqlite_engine import SqliteEngine
+from graph import rebuild_graph
 
 
 def test_rebuild_derives_answers_and_asked(tmp_path: Path):

@@ -1,12 +1,12 @@
 import json
 
-from zhihu_backup.cli import build_parser, main
-from zhihu_backup.models import ItemRecord
-from zhihu_backup.storage import open_engine
+from cli import build_parser, main
+from models import ItemRecord
+from storage import open_engine
 
 
 def test_require_max_depth_one():
-    from zhihu_backup.cli import require_max_depth_mvp
+    from cli import require_max_depth_mvp
 
     assert require_max_depth_mvp(1) is None
     err = require_max_depth_mvp(2)
@@ -81,7 +81,7 @@ def test_graph_rebuild_me_failure_stays_offline(tmp_path, monkeypatch):
         def get_json(self, url):
             raise PermissionError("auth failed HTTP 403")
 
-    monkeypatch.setattr("zhihu_backup.cli.ZhihuClient", BoomClient)
+    monkeypatch.setattr("cli.ZhihuClient", BoomClient)
     rc = main(["graph", "rebuild", "--data-dir", str(tmp_path), "--json"])
     assert rc == 0
     payload = json.loads(
@@ -107,7 +107,7 @@ def test_graph_rebuild_uses_me_when_cookies_ok(tmp_path, monkeypatch):
             assert "api/v4/me" in url
             return {"url_token": "me_token", "id": "123"}
 
-    monkeypatch.setattr("zhihu_backup.cli.ZhihuClient", OkClient)
+    monkeypatch.setattr("cli.ZhihuClient", OkClient)
     rc = main(["graph", "rebuild", "--data-dir", str(tmp_path), "--json"])
     assert rc == 0
     payload = json.loads(

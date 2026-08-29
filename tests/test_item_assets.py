@@ -4,10 +4,10 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from zhihu_backup.models import NormalizedItem
-from zhihu_backup.pipeline import Pipeline
-from zhihu_backup.sources.base import Source
-from zhihu_backup.storage import open_engine
+from models import NormalizedItem
+from pipeline import Pipeline
+from sources.base import Source
+from storage import open_engine
 
 
 class _FakeSource(Source):
@@ -57,7 +57,7 @@ def test_pipeline_links_item_assets_and_business_extra(tmp_path: Path):
     resp.content = b"img"
     resp.headers = {"content-type": "image/png"}
     resp.raise_for_status = MagicMock()
-    with patch("zhihu_backup.writers.asset.requests.get", return_value=resp):
+    with patch("writers.asset.requests.get", return_value=resp):
         action = pipe.process_item(item, source=_FakeSource())
     assert action == "created"
     rec = engine.get_item(item.key)

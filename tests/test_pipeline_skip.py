@@ -3,10 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from zhihu_backup.models import ItemRecord, NormalizedItem
-from zhihu_backup.pipeline import Pipeline
-from zhihu_backup.storage import open_engine
-from zhihu_backup.writers.content import ContentWriter
+from models import ItemRecord, NormalizedItem
+from pipeline import Pipeline
+from storage import open_engine
+from writers.content import ContentWriter
 
 
 def _item(modified: datetime | None = None) -> NormalizedItem:
@@ -64,7 +64,7 @@ def test_json_engine_roundtrip(tmp_path: Path):
     engine = open_engine("json", tmp_path / "meta")
     engine.set_cookie({"z_c0": "x"})
     assert engine.get_cookie()["z_c0"] == "x"
-    from zhihu_backup.models import Checkpoint
+    from models import Checkpoint
 
     engine.set_checkpoint(Checkpoint(source="collection", source_id="1", offset=20))
     cp = engine.get_checkpoint("collection", "1")

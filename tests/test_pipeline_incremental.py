@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from zhihu_backup.models import ItemRecord, NormalizedItem
-from zhihu_backup.pipeline import Pipeline
-from zhihu_backup.storage import open_engine
+from models import ItemRecord, NormalizedItem
+from pipeline import Pipeline
+from storage import open_engine
 
 
 def _item(zhihu_id: str, modified: datetime, parent_id: str | None = "99") -> NormalizedItem:
@@ -59,7 +59,7 @@ def test_should_not_skip_when_full(tmp_path: Path) -> None:
 
 
 def test_content_writer_filename_no_chinese(tmp_path: Path) -> None:
-    from zhihu_backup.writers.content import ContentWriter
+    from writers.content import ContentWriter
 
     writer = ContentWriter(tmp_path / "contents")
     item = _item("99", datetime(2024, 1, 1), parent_id="123")

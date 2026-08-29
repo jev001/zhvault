@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from zhihu_backup.graph import query_graph
-from zhihu_backup.graph_kuzu import query_kuzu, sync_to_kuzu
-from zhihu_backup.models import GraphEdge, ItemRecord
-from zhihu_backup.storage.sqlite_engine import SqliteEngine
+from graph import query_graph
+from graph_kuzu import query_kuzu, sync_to_kuzu
+from models import GraphEdge, ItemRecord
+from storage.sqlite_engine import SqliteEngine
 
 
 def _seed(eng: SqliteEngine) -> None:

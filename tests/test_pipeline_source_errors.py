@@ -3,10 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterator, Optional
 
-from zhihu_backup.models import NormalizedItem, RunStats
-from zhihu_backup.pipeline import Pipeline
-from zhihu_backup.sources.base import Source
-from zhihu_backup.storage import open_engine
+from models import NormalizedItem, RunStats
+from pipeline import Pipeline
+from sources.base import Source
+from storage import open_engine
 
 
 class _AuthFailSource(Source):

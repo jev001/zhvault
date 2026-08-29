@@ -4,11 +4,11 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from zhihu_backup.models import NormalizedItem
-from zhihu_backup.pipeline import Pipeline
-from zhihu_backup.sources.base import Source
-from zhihu_backup.storage import open_engine
-from zhihu_backup.writers.asset import AssetWriter, normalize_asset_url
+from models import NormalizedItem
+from pipeline import Pipeline
+from sources.base import Source
+from storage import open_engine
+from writers.asset import AssetWriter, normalize_asset_url
 
 
 class _FakeSource(Source):
@@ -53,7 +53,7 @@ def test_localize_wikilink_and_frontmatter(tmp_path: Path):
 
     md_dir = tmp_path / "contents" / "collections" / "c1"
     md_dir.mkdir(parents=True)
-    with patch("zhihu_backup.writers.asset.requests.get", side_effect=fake_get):
+    with patch("writers.asset.requests.get", side_effect=fake_get):
         body, urls, refs = writer.localize_markdown(f"![x]({source})", md_dir)
     assert calls == [origin]
     assert urls == [origin]
@@ -85,7 +85,7 @@ def test_localize_falls_back_to_source(tmp_path: Path):
 
     md_dir = tmp_path / "md"
     md_dir.mkdir()
-    with patch("zhihu_backup.writers.asset.requests.get", side_effect=download_side_effect):
+    with patch("writers.asset.requests.get", side_effect=download_side_effect):
         body, urls, refs = writer.localize_markdown(f"![x]({source})", md_dir)
     assert refs[0].origin == origin
     assert refs[0].source == source
@@ -114,7 +114,7 @@ def test_pipeline_frontmatter_assets_list(tmp_path: Path):
     resp.content = b"img"
     resp.headers = {"content-type": "image/jpeg"}
     resp.raise_for_status = MagicMock()
-    with patch("zhihu_backup.writers.asset.requests.get", return_value=resp):
+    with patch("writers.asset.requests.get", return_value=resp):
         action = pipe.process_item(item, source=_FakeSource())
     assert action == "created"
     text = Path(engine.get_item(item.key).path).read_text(encoding="utf-8")
@@ -134,7 +134,7 @@ def test_asset_link_rel(tmp_path: Path):
     resp.raise_for_status = MagicMock()
     md_dir = tmp_path / "contents" / "c"
     md_dir.mkdir(parents=True)
-    with patch("zhihu_backup.writers.asset.requests.get", return_value=resp):
+    with patch("writers.asset.requests.get", return_value=resp):
         body, _, _ = writer.localize_markdown("![a](https://cdn.example/a.png)", md_dir)
     assert "![](" in body or "![a](" in body
     assert "![[" not in body

@@ -2,10 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from zhihu_backup.search.embed import HashEmbeddingProvider
-from zhihu_backup.search.memory_store import MemoryVectorStore
-from zhihu_backup.search.store import open_vector_store
-from zhihu_backup.search.types import VectorRecord
+from search.embed import HashEmbeddingProvider
+from search.memory_store import MemoryVectorStore
+from search.store import open_vector_store
+from search.types import VectorRecord
 
 
 def test_memory_upsert_query_nearest():

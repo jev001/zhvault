@@ -2,7 +2,7 @@ import sys
 
 import pytest
 
-from zhihu_backup.search.embed import (
+from search.embed import (
     EmbedderError,
     HashEmbeddingProvider,
     open_embedder,
