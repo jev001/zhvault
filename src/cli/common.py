@@ -240,5 +240,6 @@ def resolve_ego(engine) -> str | None:
         me = ZhihuClient(cookies).get_json(ME_URL)
         token = str((me or {}).get("url_token") or (me or {}).get("id") or "")
         return token or None
-    except Exception:
+    except Exception as e:
+        log.info("resolve ego failed: %s", e)
         return None

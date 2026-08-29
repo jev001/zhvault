@@ -62,6 +62,7 @@ make sync-all   # all optional extras (chroma/kuzu/rocksdb/…)
 pre-commit install
 make gate       # required green: ruff + full pytest
 make build
+make clean      # dist/build/egg-info; clean-cache += caches; clean-all += .venv
 uv run zhvault status --json
 ```
 

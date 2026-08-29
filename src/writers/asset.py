@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import re
 import urllib.parse
@@ -11,6 +12,8 @@ from pathlib import Path
 import requests
 
 from storage.base import StorageEngine
+
+log = logging.getLogger("zhvault.asset")
 
 _IMG_RE = re.compile(r"!\[(?P<alt>.*?)\]\((?P<link>.+?)\)")
 # Zhihu CDN size suffixes before file extension: v2-xxx_720w.jpg
@@ -84,6 +87,7 @@ class AssetWriter:
                 to_fetch.append(url)
 
         if to_fetch:
+            log.info("asset fetch pending=%s workers=%s", len(to_fetch), self.workers)
             # Download in worker threads only; SQLite engine is not thread-safe.
             downloads: dict[str, tuple[bytes, str, str, str] | None] = {}
             # value: content, content_type, canonical_url, origin_url
@@ -95,10 +99,12 @@ class AssetWriter:
                     url = futures[fut]
                     try:
                         downloads[url] = fut.result()
-                    except Exception:
+                    except Exception as e:
+                        log.warning("asset download worker failed %s: %s", url, e)
                         downloads[url] = None
             for source_url, packed in downloads.items():
                 if not packed:
+                    log.info("asset download failed %s", source_url)
                     resolved[source_url] = None
                     continue
                 content, content_type, canonical, origin = packed
@@ -206,6 +212,7 @@ class AssetWriter:
             return cached
         packed = self._download_prefer_origin(source_url)
         if not packed:
+            log.info("asset download failed %s", source_url)
             return None
         content, content_type, canonical, origin = packed
         path = self._store(
@@ -248,7 +255,8 @@ class AssetWriter:
             resp.raise_for_status()
             content_type = (resp.headers.get("content-type") or "").split(";")[0].strip()
             return resp.content, content_type
-        except Exception:
+        except Exception as e:
+            log.debug("asset GET failed %s: %s", url, e)
             return None
 
     @staticmethod

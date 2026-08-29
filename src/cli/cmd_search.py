@@ -17,6 +17,7 @@ from .common import (
     data_paths,
     json_print,
     kinds_from_args,
+    log,
     open_embedder_from_args,
     resolve_vector_backend,
     vectors_root,
@@ -30,6 +31,12 @@ def cmd_search_index(args: argparse.Namespace) -> int:
         backend = resolve_vector_backend(getattr(args, "vector_backend", None))
     except VectorBackendError as e:
         return cmd_fail(args, str(e))
+    log.info(
+        "search index start backend=%s engine=%s data_dir=%s",
+        backend,
+        args.engine,
+        data_dir,
+    )
     engine = open_engine(args.engine, meta)
     try:
         vectors = vectors_root(meta, args.engine)
@@ -49,6 +56,7 @@ def cmd_search_index(args: argparse.Namespace) -> int:
             embedder=embedder,
         )
         summary = {"event": "summary", "backend": backend, **stats}
+        log.info("search index done backend=%s stats=%s", backend, stats)
         if args.json:
             json_print(summary)
         else:
@@ -65,6 +73,13 @@ def cmd_search_semantic(args: argparse.Namespace) -> int:
         backend = resolve_vector_backend(getattr(args, "vector_backend", None))
     except VectorBackendError as e:
         return cmd_fail(args, str(e))
+    log.info(
+        "search semantic start backend=%s top_k=%s engine=%s query=%r",
+        backend,
+        args.top_k,
+        args.engine,
+        args.query,
+    )
     engine = open_engine(args.engine, meta)
     try:
         vectors = vectors_root(meta, args.engine)
@@ -112,7 +127,8 @@ def cmd_search_semantic(args: argparse.Namespace) -> int:
                     try:
                         g = query_graph(engine, start=str(key), depth=int(expand), kinds=kinds)
                         neighbors = [n for n in (g.get("nodes") or []) if n.get("id") != key]
-                    except Exception:
+                    except Exception as e:
+                        log.info("search expand-graph failed item_key=%s: %s", key, e)
                         neighbors = []
                     graph_cache[str(key)] = neighbors
                     row["neighbors"] = neighbors
@@ -123,6 +139,7 @@ def cmd_search_semantic(args: argparse.Namespace) -> int:
             "backend": backend,
             "hits": out_hits,
         }
+        log.info("search semantic done backend=%s hits=%s", backend, len(out_hits))
         if args.json:
             json_print(result)
         else:

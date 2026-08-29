@@ -15,6 +15,7 @@ from .common import (
     engine_meta_dir,
     json_print,
     kuzu_db_path,
+    log,
     now,
     resolve_ego,
     resolve_graph_query_backend,
@@ -24,6 +25,7 @@ from .common import (
 def cmd_graph_rebuild(args: argparse.Namespace) -> int:
     data_dir = Path(args.data_dir)
     contents, _, meta = data_paths(data_dir)
+    log.info("graph rebuild start engine=%s data_dir=%s", args.engine, data_dir)
     engine = open_engine(args.engine, meta)
     try:
         ego = resolve_ego(engine)
@@ -40,6 +42,11 @@ def cmd_graph_rebuild(args: argparse.Namespace) -> int:
             "nodes": len(out.get("nodes") or []),
             "edges": len(out.get("edges") or []),
         }
+        log.info(
+            "graph rebuild done nodes=%s edges=%s",
+            summary["nodes"],
+            summary["edges"],
+        )
         if args.json:
             json_print(summary)
         else:
@@ -69,6 +76,12 @@ def cmd_graph_edge_add(args: argparse.Namespace) -> int:
             "kind": args.kind,
             "origin": "manual",
         }
+        log.info(
+            "graph edge add %s -> %s kind=%s",
+            args.from_id,
+            args.to_id,
+            args.kind,
+        )
         if args.json:
             json_print(result)
         else:
@@ -83,6 +96,7 @@ def cmd_graph_sync(args: argparse.Namespace) -> int:
     backend = getattr(args, "backend", None) or "kuzu"
     if backend != "kuzu":
         return cmd_fail(args, f"unsupported graph sync backend: {backend!r} (only kuzu supported)")
+    log.info("graph sync start backend=%s engine=%s", backend, args.engine)
     engine = open_engine(args.engine, meta)
     try:
         db_path = kuzu_db_path(meta, args.engine)
@@ -91,6 +105,7 @@ def cmd_graph_sync(args: argparse.Namespace) -> int:
         except KuzuBackendError as e:
             return cmd_fail(args, str(e))
         summary = {"event": "summary", "backend": "kuzu", **stats}
+        log.info("graph sync done backend=kuzu stats=%s", stats)
         if args.json:
             json_print(summary)
         else:
@@ -102,6 +117,13 @@ def cmd_graph_sync(args: argparse.Namespace) -> int:
 
 def cmd_graph_query(args: argparse.Namespace) -> int:
     _, _, meta = data_paths(Path(args.data_dir))
+    log.info(
+        "graph query start from=%s depth=%s backend=%s engine=%s",
+        args.from_id,
+        args.depth,
+        getattr(args, "backend", None) or "auto",
+        args.engine,
+    )
     engine = open_engine(args.engine, meta)
     try:
         db_path = kuzu_db_path(meta, args.engine)
@@ -124,6 +146,12 @@ def cmd_graph_query(args: argparse.Namespace) -> int:
                 depth=int(args.depth),
                 kinds=kinds,
             )
+        log.info(
+            "graph query done backend=%s nodes=%s edges=%s",
+            backend,
+            len(out.get("nodes") or []),
+            len(out.get("edges") or []),
+        )
         if args.json:
             json_print(out)
         else:
@@ -145,6 +173,12 @@ def cmd_graph_edge_remove(args: argparse.Namespace) -> int:
             "kind": args.kind,
             "removed": True,
         }
+        log.info(
+            "graph edge remove %s -> %s kind=%s",
+            args.from_id,
+            args.to_id,
+            args.kind,
+        )
         if args.json:
             json_print(result)
         else:

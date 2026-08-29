@@ -23,6 +23,13 @@ def cmd_account_plan(args: argparse.Namespace) -> int:
 
     mode = args.mode
     data_dir = Path(args.data_dir)
+    log.info(
+        "account plan start mode=%s source=%s engine=%s data_dir=%s",
+        mode,
+        args.source,
+        args.engine,
+        data_dir,
+    )
     if mode == "migrate":
         if not args.from_data_dir:
             return cmd_fail(args, "migrate requires --from-data-dir")
@@ -111,6 +118,12 @@ def cmd_account_apply(args: argparse.Namespace) -> int:
         return cmd_fail(args, f"invalid plan: {e}")
 
     data_dir = Path(args.data_dir)
+    log.info(
+        "account apply start plan=%s actions=%s engine=%s",
+        plan_path,
+        len(plan.get("actions") or []),
+        args.engine,
+    )
     _, _, meta = data_paths(data_dir)
     engine = open_engine(args.engine, meta)
     try:
@@ -132,6 +145,11 @@ def cmd_account_apply(args: argparse.Namespace) -> int:
             )
         except ApplyGateError as e:
             return cmd_fail(args, str(e), code=2)
+        log.info(
+            "account apply done failed_count=%s ok=%s",
+            result.get("failed_count"),
+            result.get("ok"),
+        )
         if args.json:
             json_print(result)
         else:

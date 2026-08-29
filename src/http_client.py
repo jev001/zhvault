@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any
 
 import requests
+
+log = logging.getLogger("zhvault.http")
 
 DEFAULT_HEADERS = {
     "accept": "*/*",
@@ -59,6 +62,7 @@ class ZhihuClient:
         last_err: Exception | None = None
         for attempt in range(retries):
             self._throttle()
+            log.debug("%s %s attempt=%s/%s", method_u, url, attempt + 1, retries)
             try:
                 resp = self.session.request(
                     method_u,
@@ -70,9 +74,24 @@ class ZhihuClient:
                 )
                 self._last_request_at = time.monotonic()
                 if resp.status_code in (401, 403):
+                    log.error(
+                        "auth failed HTTP %s for %s %s",
+                        resp.status_code,
+                        method_u,
+                        url,
+                    )
                     raise PermissionError(f"auth failed HTTP {resp.status_code} for {method_u} {url}")
                 if resp.status_code == 429:
-                    time.sleep(2 ** attempt)
+                    delay = 2 ** attempt
+                    log.info(
+                        "HTTP 429 %s %s; backoff %ss (attempt %s/%s)",
+                        method_u,
+                        url,
+                        delay,
+                        attempt + 1,
+                        retries,
+                    )
+                    time.sleep(delay)
                     continue
                 resp.raise_for_status()
                 if not resp.content:
@@ -80,11 +99,29 @@ class ZhihuClient:
                 try:
                     out = resp.json()
                 except ValueError:
+                    log.info(
+                        "non-JSON response HTTP %s for %s %s",
+                        resp.status_code,
+                        method_u,
+                        url,
+                    )
                     return {"_raw": resp.text, "_status": resp.status_code}
                 return out if isinstance(out, dict) else {"data": out}
             except PermissionError:
                 raise
             except Exception as e:
                 last_err = e
-                time.sleep(2 ** attempt)
+                delay = 2 ** attempt
+                if attempt + 1 < retries:
+                    log.info(
+                        "%s %s failed (%s); retry in %ss (attempt %s/%s)",
+                        method_u,
+                        url,
+                        e,
+                        delay,
+                        attempt + 1,
+                        retries,
+                    )
+                time.sleep(delay)
+        log.error("%s failed %s after %s attempts: %s", method_u, url, retries, last_err)
         raise RuntimeError(f"{method_u} failed {url}: {last_err}")

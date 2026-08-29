@@ -1,11 +1,12 @@
-.PHONY: help sync install sync-all test lint fmt build gate zhvault
+.PHONY: help sync install sync-all test lint fmt build gate zhvault clean clean-cache clean-all
 .DEFAULT_GOAL := help
 
 UV ?= uv
 
 help:
-	@echo "Targets: sync install sync-all test lint fmt build gate zhvault ARGS=..."
+	@echo "Targets: sync install sync-all test lint fmt build gate zhvault clean clean-cache clean-all ARGS=..."
 	@echo "sync uses uv (fallback: pip). gate = REQUIRED green check"
+	@echo "clean = dist/build/egg-info; clean-cache += caches; clean-all += .venv (never data/)"
 
 # Django-ish layout: src/ = package, tests/ = suite at repo root
 sync install:
@@ -43,3 +44,16 @@ build:
 
 zhvault:
 	@if command -v $(UV) >/dev/null 2>&1; then $(UV) run zhvault $(ARGS); else zhvault $(ARGS); fi
+
+# Layered cleanup; never touch data/ or Cookies.json
+clean:
+	rm -rf dist/ build/
+	rm -rf *.egg-info src/*.egg-info
+
+clean-cache: clean
+	rm -rf .pytest_cache/ .ruff_cache/
+	find . -type d -name __pycache__ -not -path './.venv/*' -not -path './.review-venv/*' -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name '*.pyc' -not -path './.venv/*' -not -path './.review-venv/*' -delete 2>/dev/null || true
+
+clean-all: clean-cache
+	rm -rf .venv/ .review-venv/
