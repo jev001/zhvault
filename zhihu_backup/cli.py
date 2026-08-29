@@ -14,7 +14,7 @@ from zhihu_backup.auth import (
     resolve_cookies,
     set_cookie_from_file,
 )
-from zhihu_backup.graph import rebuild_graph
+from zhihu_backup.graph import query_graph, rebuild_graph
 from zhihu_backup.http_client import ZhihuClient
 from zhihu_backup.models import GraphEdge
 from zhihu_backup.pipeline import Pipeline
@@ -354,6 +354,26 @@ def cmd_graph_edge_add(args: argparse.Namespace) -> int:
         engine.close()
 
 
+def cmd_graph_query(args: argparse.Namespace) -> int:
+    _, _, meta = _data_paths(Path(args.data_dir))
+    engine = open_engine(args.engine, meta)
+    try:
+        kinds = set(args.kind) if args.kind else None
+        out = query_graph(
+            engine,
+            start=args.from_id,
+            depth=int(args.depth),
+            kinds=kinds,
+        )
+        if args.json:
+            _json_print(out)
+        else:
+            print(f"{len(out['nodes'])} nodes, {len(out['edges'])} edges")
+        return 0
+    finally:
+        engine.close()
+
+
 def cmd_graph_edge_remove(args: argparse.Namespace) -> int:
     _, _, meta = _data_paths(Path(args.data_dir))
     engine = open_engine(args.engine, meta)
@@ -429,6 +449,12 @@ def build_parser() -> argparse.ArgumentParser:
     g_sub = g.add_subparsers(dest="graph_command", required=True)
     rb = g_sub.add_parser("rebuild", help="offline rebuild graph.json from meta", parents=[common])
     rb.set_defaults(func=cmd_graph_rebuild)
+
+    gq = g_sub.add_parser("query", help="BFS subgraph from a node key", parents=[common])
+    gq.add_argument("--from", dest="from_id", required=True, help="start node key")
+    gq.add_argument("--depth", type=int, default=1, help="max hop depth (default 1)")
+    gq.add_argument("--kind", action="append", default=None, help="edge kind filter (repeatable)")
+    gq.set_defaults(func=cmd_graph_query)
 
     edge = g_sub.add_parser("edge", help="manual edge mutations", parents=[common])
     edge_sub = edge.add_subparsers(dest="edge_command", required=True)

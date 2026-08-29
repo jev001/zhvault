@@ -30,6 +30,7 @@ python -m zhihu_backup backup --source collection --json
 python -m zhihu_backup backup --source social --json
 python -m zhihu_backup resume --json
 python -m zhihu_backup graph rebuild --json
+python -m zhihu_backup graph query --from user:me --depth 2 --kind follows --json
 python -m zhihu_backup graph edge add --from user:a --to user:b
 python -m zhihu_backup graph edge remove --from user:a --to user:b
 ```
@@ -40,6 +41,7 @@ Social / graph notes:
 
 - `--source all` does **not** include `following` / `followers`; run `--source social` explicitly.
 - `graph rebuild` is **manual only** (not run after `backup` / `resume`); offline from stored items + membership + persisted `graph_edges`.
+- `graph query` is offline BFS over unified edges (derived + persisted); `--json` prints the query result dict (nodes + edges).
 - `--max-depth` defaults to `1`; values other than `1` are rejected (multi-hop crawl reserved for later).
 
 `--json`: events/summary on stdout; logs on stderr. Agent flow: `status --json` → auth if needed → `backup --json` → read `event=summary`.
@@ -63,5 +65,6 @@ Social / graph notes:
 - New content filenames contain no Chinese
 - `backup --source social` writes `contents/people/{url_token}.md` and upserts `follows` edges (`origin=api`)
 - `graph rebuild --json` → `meta/.../graph.json` with derived content edges + wikilinks in people MD
+- `graph query --from user:me --depth 2 --kind follows --json` → jq-friendly subgraph (no network)
 - `graph edge add|remove` persists `origin=manual` edges (survive social sync)
 - `--max-depth 2` → exit 2 + clear error (MVP depth = 1 only)
