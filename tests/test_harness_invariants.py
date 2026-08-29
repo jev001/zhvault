@@ -77,6 +77,12 @@ def test_gate_files_present():
         ROOT / "docs" / "harness" / "config" / "inventory.md",
         ROOT / "docs" / "harness" / "anti-bypass.md",
         ROOT / "docs" / "harness" / "verify.md",
+        ROOT / "docs" / "harness" / "ops" / "README.md",
+        ROOT / "docs" / "harness" / "ops" / "flows.md",
+        ROOT / "docs" / "harness" / "ops" / "runbook.md",
+        ROOT / "docs" / "harness" / "ops" / "architecture.md",
+        ROOT / "scripts" / "gen_architecture_docs.py",
+        ROOT / ".cursor" / "hooks.json",
     ]
     missing = [str(p.relative_to(ROOT)) for p in required if not p.is_file()]
     assert not missing, f"harness gate files missing: {missing}"

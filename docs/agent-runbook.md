@@ -10,4 +10,4 @@ Prerequisite: `make sync` (editable install; provides `zhvault` on PATH). Once p
 6. Read final `{"event":"summary",...}` for counts.
 
 **Green gate (required before claiming done):** `make gate`  
-See [HARNESS.md](../HARNESS.md) (protocol taxonomy), [harness/verify.md](./harness/verify.md), and [harness/build/gate.md](./harness/build/gate.md). Do not bypass hooks or invent fake tests.
+See [HARNESS.md](../HARNESS.md) (protocol taxonomy), [harness/verify.md](./harness/verify.md), [harness/build/gate.md](./harness/build/gate.md), and [harness/ops/runbook.md](./harness/ops/runbook.md). Do not bypass hooks or invent fake tests.

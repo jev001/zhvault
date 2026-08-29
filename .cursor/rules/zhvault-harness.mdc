@@ -1,13 +1,15 @@
 ---
 description: Do not weaken zhvault harness green gate
-globs: HARNESS.md,docs/harness/**/*,.github/**/*,Makefile,ruff.toml,.pre-commit-config.yaml,tests/test_harness_invariants.py
+globs: HARNESS.md,docs/harness/**/*,.github/**/*,Makefile,ruff.toml,.pre-commit-config.yaml,tests/test_harness_invariants.py,.cursor/hooks.json,.cursor/hooks/**
 alwaysApply: false
 ---
 
 # zhvault harness
 
 - Green gate is `make gate` + CI workflow `harness-gate` — see `docs/harness/build/gate.md`.
-- Protocol taxonomy: `docs/harness/{python,frontend,build,config}/` (map in `HARNESS.md`).
+- Protocol taxonomy: `docs/harness/{python,frontend,build,config,ops}/` (map in `HARNESS.md`).
+- Confirmed operator flows: `docs/harness/ops/` (update when backup/`--user`/deploy/gate change).
+- Project Cursor hooks (`.cursor/hooks.json`) inject ops context and deny `git commit --no-verify`.
 - Do not gut `ruff.toml` select, delete invariant tests, or no-op the CI workflow to force green.
 - Do not instruct or use `--no-verify` to skip hooks.
 - Extending invariants is fine; removing them requires human approval.

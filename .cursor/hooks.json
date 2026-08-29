@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "node .cursor/hooks/harness-ops-context.mjs"
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": "node .cursor/hooks/harness-deny-no-verify.mjs",
+        "matcher": "git\\s+commit"
+      }
+    ]
+  }
+}

@@ -10,12 +10,13 @@ Agent / vibe-coding **constraint surface** for this repo. Not a runtime library.
 | **Frontend** | [docs/harness/frontend/README.md](docs/harness/frontend/README.md) | Stub — no UI; do not invent a frontend stack |
 | **Build** | [docs/harness/build/gate.md](docs/harness/build/gate.md) | `make gate`, pre-commit, CI `harness-gate` |
 | **Config** | [docs/harness/config/inventory.md](docs/harness/config/inventory.md) | Where tool files live (root) and why |
+| **Ops** | [docs/harness/ops/README.md](docs/harness/ops/README.md) | Confirmed flowcharts + operator runbook; Cursor hooks |
 
 Shared:
 
 - [docs/harness/anti-bypass.md](docs/harness/anti-bypass.md)
 - [docs/harness/verify.md](docs/harness/verify.md)
-- [AGENTS.md](AGENTS.md) · [docs/agent-runbook.md](docs/agent-runbook.md) · `.cursor/rules/`
+- [AGENTS.md](AGENTS.md) · [docs/agent-runbook.md](docs/agent-runbook.md) · `.cursor/rules/` · `.cursor/hooks.json`
 
 ## Layers
 

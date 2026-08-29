@@ -1,12 +1,13 @@
-.PHONY: help sync install sync-all test lint fmt build gate zhvault clean clean-cache clean-all
+.PHONY: help sync install sync-all test lint fmt build gate zhvault clean clean-cache clean-all docs-arch
 .DEFAULT_GOAL := help
 
 UV ?= uv
 
 help:
-	@echo "Targets: sync install sync-all test lint fmt build gate zhvault clean clean-cache clean-all ARGS=..."
+	@echo "Targets: sync install sync-all test lint fmt build gate zhvault clean clean-cache clean-all docs-arch ARGS=..."
 	@echo "sync uses uv (fallback: pip). gate = REQUIRED green check"
 	@echo "clean = dist/build/egg-info; clean-cache += caches; clean-all += .venv (never data/)"
+	@echo "docs-arch = regenerate docs/harness/ops/architecture.md from src/"
 
 # Django-ish layout: src/ = package, tests/ = suite at repo root
 sync install:
@@ -57,3 +58,6 @@ clean-cache: clean
 
 clean-all: clean-cache
 	rm -rf .venv/ .review-venv/
+
+docs-arch:
+	python3 scripts/gen_architecture_docs.py

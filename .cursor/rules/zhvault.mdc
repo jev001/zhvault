@@ -6,7 +6,7 @@ alwaysApply: true
 
 # zhvault
 
-- **Harness:** `HARNESS.md` — taxonomy: `docs/harness/{python,frontend,build,config}/`. Required green: `make gate`. No magic bypass (`docs/harness/anti-bypass.md`).
+- **Harness:** `HARNESS.md` — taxonomy: `docs/harness/{python,frontend,build,config,ops}/`. Required green: `make gate`. No magic bypass (`docs/harness/anti-bypass.md`). Ops flows: `docs/harness/ops/`. Cursor hooks: `.cursor/hooks.json`.
 - **CLI:** `zhvault` (deprecated script alias: `zhihu-backup` only).
 - **Code:** under `src/` as setuptools import root — imports are top-level (`cli`, `storage`, …), not `import zhvault`. Tests in `tests/` (repo root).
 - **Dev:** `make sync` (uv), `pre-commit install`, `make gate`.
