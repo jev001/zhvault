@@ -60,7 +60,7 @@ If live traffic requires an `include=` query, add a single constant in `zhihu_li
 
 - **Column stub:** keep `owner_kind=columns`, `owner_id=<member url_token>`, `source_tag=column:<member>`.
 - **Articles from column items:** normalize as `type=article` with `parent_id` / `extra.column_id` set from the column key (existing `business_extra` / graph `in_column` already expect this).
-  - Prefer `owner_kind=columns` and `owner_id=<member>` so files live under the columns tree **or** keep `owner_kind=articles` if that matches existing member-article paths — **pick one in implementation and document in AGENTS**: recommendation is `owner_kind=articles`, `owner_id=<member url_token>`, `source_tag=column-items:<column_key>` so paths align with `--source article` and `item_key` dedupes cleanly.
+  - **Locked:** `owner_kind=articles`, `owner_id=<member url_token>`, `source_tag=column-items:<column_key>` so paths align with `--source article` and `item_key` dedupes cleanly.
 - Incremental: same `item_key` → pipeline `skipped` as today.
 
 ### Wikilinks (C)
