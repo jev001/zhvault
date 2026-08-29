@@ -1,11 +1,12 @@
 import json
 from pathlib import Path
 
-from zhihu_backup.cli import build_parser, main
+from zhihu_backup.cli import build_parser, main, resolve_embed_provider
 from zhihu_backup.models import GraphEdge, ItemRecord
 from zhihu_backup.storage import open_engine
 
 PHRASE = "zebra quaternion backup fixture"
+HASH_FLAGS = ["--embed-provider", "hash"]
 
 
 def _seed_item(tmp_path: Path, *, with_edge: bool = False) -> None:
@@ -45,9 +46,10 @@ def _seed_item(tmp_path: Path, *, with_edge: bool = False) -> None:
 
 def test_parser_search_index():
     p = build_parser()
-    args = p.parse_args(["search", "index", "--vector-backend", "memory"])
+    args = p.parse_args(["search", "index", "--vector-backend", "memory", *HASH_FLAGS])
     assert args.func.__name__ == "cmd_search_index"
     assert args.vector_backend == "memory"
+    assert args.embed_provider == "hash"
 
 
 def test_parser_search_semantic():
@@ -61,6 +63,7 @@ def test_parser_search_semantic():
             "5",
             "--vector-backend",
             "memory",
+            *HASH_FLAGS,
             "--expand-graph",
             "2",
             "--kind",
@@ -71,8 +74,14 @@ def test_parser_search_semantic():
     assert args.query == "hello world"
     assert args.top_k == 5
     assert args.vector_backend == "memory"
+    assert args.embed_provider == "hash"
     assert args.expand_graph == 2
     assert args.kind == ["follows"]
+
+
+def test_resolve_embed_provider_explicit():
+    assert resolve_embed_provider("hash") == "hash"
+    assert resolve_embed_provider("http") == "http"
 
 
 def test_search_index_cli_json(tmp_path, capsys):
@@ -83,6 +92,7 @@ def test_search_index_cli_json(tmp_path, capsys):
             "index",
             "--vector-backend",
             "memory",
+            *HASH_FLAGS,
             "--json",
             "--data-dir",
             str(tmp_path),
@@ -109,6 +119,7 @@ def test_search_semantic_cli_json(tmp_path, capsys):
             "index",
             "--vector-backend",
             "memory",
+            *HASH_FLAGS,
             "--json",
             "--data-dir",
             str(tmp_path),
@@ -123,6 +134,7 @@ def test_search_semantic_cli_json(tmp_path, capsys):
             PHRASE,
             "--vector-backend",
             "memory",
+            *HASH_FLAGS,
             "--top-k",
             "5",
             "--json",
@@ -147,6 +159,7 @@ def test_search_semantic_expand_graph(tmp_path, capsys):
             "index",
             "--vector-backend",
             "memory",
+            *HASH_FLAGS,
             "--json",
             "--data-dir",
             str(tmp_path),
@@ -161,6 +174,7 @@ def test_search_semantic_expand_graph(tmp_path, capsys):
             PHRASE,
             "--vector-backend",
             "memory",
+            *HASH_FLAGS,
             "--expand-graph",
             "1",
             "--kind",
@@ -179,9 +193,20 @@ def test_search_semantic_expand_graph(tmp_path, capsys):
     assert "user:alice" in ids
 
 
+def test_search_index_fails_without_embed_provider_when_st_missing(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr("zhihu_backup.cli._sentence_transformers_importable", lambda: False)
+    monkeypatch.setattr("zhihu_backup.cli._chroma_importable", lambda: True)
+    rc = main(["search", "index", "--vector-backend", "memory", "--json", "--data-dir", str(tmp_path)])
+    assert rc != 0
+    err = capsys.readouterr()
+    payload = json.loads(err.out.strip())
+    text = json.dumps(payload)
+    assert "search-ml" in text or "embed-provider" in text
+
+
 def test_search_index_fails_without_backend_when_chroma_missing(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr("zhihu_backup.cli._chroma_importable", lambda: False)
-    rc = main(["search", "index", "--json", "--data-dir", str(tmp_path)])
+    rc = main(["search", "index", "--json", "--data-dir", str(tmp_path), *HASH_FLAGS])
     assert rc != 0
     err = capsys.readouterr()
     payload = json.loads(err.out.strip() or err.err.strip().splitlines()[-1])
@@ -198,6 +223,7 @@ def test_search_semantic_no_index_fails(tmp_path, capsys):
             PHRASE,
             "--vector-backend",
             "memory",
+            *HASH_FLAGS,
             "--json",
             "--data-dir",
             str(tmp_path),
@@ -217,6 +243,7 @@ def test_search_semantic_backend_mismatch_fails(tmp_path, capsys):
             "index",
             "--vector-backend",
             "memory",
+            *HASH_FLAGS,
             "--json",
             "--data-dir",
             str(tmp_path),
@@ -237,6 +264,7 @@ def test_search_semantic_backend_mismatch_fails(tmp_path, capsys):
             PHRASE,
             "--vector-backend",
             "memory",
+            *HASH_FLAGS,
             "--json",
             "--data-dir",
             str(tmp_path),

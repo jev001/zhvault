@@ -19,7 +19,7 @@ from zhihu_backup.graph import query_graph, rebuild_graph
 from zhihu_backup.http_client import ZhihuClient
 from zhihu_backup.models import GraphEdge
 from zhihu_backup.pipeline import Pipeline
-from zhihu_backup.search.embed import HashEmbeddingProvider
+from zhihu_backup.search.embed import EmbedderError, open_embedder
 from zhihu_backup.search.index import build_index, read_manifest
 from zhihu_backup.search.store import VectorBackendError, open_vector_store
 from zhihu_backup.sources import build_sources
@@ -146,6 +146,36 @@ def _vectors_root(meta: Path, engine_name: str) -> Path:
 
 def _chroma_importable() -> bool:
     return importlib.util.find_spec("chromadb") is not None
+
+
+def _sentence_transformers_importable() -> bool:
+    return importlib.util.find_spec("sentence_transformers") is not None
+
+
+class EmbedProviderError(RuntimeError):
+    """Raised when --embed-provider cannot be resolved."""
+
+
+def resolve_embed_provider(explicit: Optional[str]) -> str:
+    if explicit:
+        return explicit
+    if _sentence_transformers_importable():
+        return "local"
+    raise EmbedProviderError(
+        "no embed provider specified and sentence-transformers not installed. "
+        "Install with: pip install 'zhihu-backup[search-ml]' "
+        "or pass --embed-provider hash|http"
+    )
+
+
+def _open_embedder_from_args(args: argparse.Namespace):
+    name = resolve_embed_provider(getattr(args, "embed_provider", None))
+    return open_embedder(
+        name,
+        model=getattr(args, "embed_model", None),
+        api_base=getattr(args, "embed_api_base", None),
+        api_key=getattr(args, "embed_api_key", None),
+    )
 
 
 def _resolve_vector_backend(explicit: Optional[str]) -> str:
@@ -429,12 +459,16 @@ def cmd_search_index(args: argparse.Namespace) -> int:
             store = open_vector_store(backend, vectors_root)
         except VectorBackendError as e:
             return _cmd_fail(args, str(e))
+        try:
+            embedder = _open_embedder_from_args(args)
+        except (EmbedProviderError, EmbedderError) as e:
+            return _cmd_fail(args, str(e))
         stats = build_index(
             engine,
             contents,
             vectors_root,
             store=store,
-            embedder=HashEmbeddingProvider(),
+            embedder=embedder,
         )
         summary = {"event": "summary", "backend": backend, **stats}
         if args.json:
@@ -470,7 +504,10 @@ def cmd_search_semantic(args: argparse.Namespace) -> int:
             )
         if manifest is None and store.count() == 0:
             return _cmd_fail(args, "no vector index found; run search index first")
-        embedder = HashEmbeddingProvider()
+        try:
+            embedder = _open_embedder_from_args(args)
+        except (EmbedProviderError, EmbedderError) as e:
+            return _cmd_fail(args, str(e))
         query_vec = embedder.embed([args.query])[0]
         hits = store.query(query_vec, top_k=int(args.top_k))
         expand = getattr(args, "expand_graph", None)
@@ -639,14 +676,31 @@ def build_parser() -> argparse.ArgumentParser:
             help="vector store backend (default: chroma if installed, else error)",
         )
 
+    def add_embed_flags(sp: argparse.ArgumentParser) -> None:
+        sp.add_argument(
+            "--embed-provider",
+            choices=["hash", "local", "http"],
+            default=None,
+            help="embedding provider (default: local if sentence-transformers installed, else error)",
+        )
+        sp.add_argument("--embed-model", default=None, help="model id (local/http)")
+        sp.add_argument("--embed-api-base", default=None, help="API base URL (http)")
+        sp.add_argument(
+            "--embed-api-key",
+            default=None,
+            help="API key (http; default from ZHIHU_EMBED_API_KEY env)",
+        )
+
     si = search_sub.add_parser("index", help="chunk, embed, and upsert into VectorStore", parents=[common])
     add_vector_backend(si)
+    add_embed_flags(si)
     si.set_defaults(func=cmd_search_index)
 
     ss = search_sub.add_parser("semantic", help="embed query and retrieve nearest chunks", parents=[common])
     ss.add_argument("query", help="search query text")
     ss.add_argument("--top-k", type=int, default=10, dest="top_k", help="number of hits (default 10)")
     add_vector_backend(ss)
+    add_embed_flags(ss)
     ss.add_argument(
         "--expand-graph",
         type=int,

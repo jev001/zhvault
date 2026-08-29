@@ -35,13 +35,17 @@ python -m zhihu_backup graph query --from user:me --depth 2 --kind follows --jso
 python -m zhihu_backup graph edge add --from user:a --to user:b
 python -m zhihu_backup graph edge remove --from user:a --to user:b
 python -m zhihu_backup search index --json
+python -m zhihu_backup search index --embed-provider hash --vector-backend memory --json
 python -m zhihu_backup search semantic "query" --top-k 10 --json
+python -m zhihu_backup search semantic "query" --embed-provider local --json
 python -m zhihu_backup search semantic "query" --expand-graph 1 --kind follows --json
 ```
 
-Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`, `--x-zse-96`, `--asset-workers`, `--json`, `--vector-backend`.
+Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`, `--x-zse-96`, `--asset-workers`, `--json`, `--vector-backend`, `--embed-provider`, `--embed-model`, `--embed-api-base`, `--embed-api-key`.
 
-Optional extra: `pip install 'zhihu-backup[chroma]'` for durable Chroma index. Default `--vector-backend` is chroma when importable; otherwise the CLI fails with an install hint (pass `--vector-backend memory` only for tests). MVP embeddings use the hash stub (`HashEmbeddingProvider`); a real ML provider is deferred.
+Optional extras:
+- `pip install 'zhihu-backup[chroma]'` — durable Chroma vector index. Default `--vector-backend` is chroma when importable; otherwise the CLI fails with an install hint (pass `--vector-backend memory` only for tests).
+- `pip install 'zhihu-backup[search-ml]'` — local embeddings via sentence-transformers. Omitted `--embed-provider` defaults to `local` when importable; otherwise the CLI fails with an install hint (pass `--embed-provider hash` for CI/tests, or `http` with `--embed-api-base` / `--embed-model`; API key from `--embed-api-key` or `ZHIHU_EMBED_API_KEY`).
 
 Social / graph notes:
 
@@ -75,6 +79,7 @@ Social / graph notes:
 - `graph edge add|remove` persists `origin=manual` edges (survive social sync)
 - `--max-depth 2` → exit 2 + clear error (MVP depth = 1 only)
 - `search index --json` writes `meta/{engine}/vectors/` (manifest + backend store); second run upserts same chunk ids
-- `search semantic QUERY --json` returns hits with `item_key` / score / path (offline; hash embedder in MVP)
+- `search semantic QUERY --json` returns hits with `item_key` / score / path (offline; requires matching embed provider used at index time)
 - `search semantic ... --expand-graph N` attaches `neighbors` from `query_graph` per hit (best-effort)
 - Missing chromadb and no `--vector-backend memory` → non-zero + `pip install 'zhihu-backup[chroma]'`
+- Missing `--embed-provider` and no sentence-transformers → non-zero + `pip install 'zhihu-backup[search-ml]'` or pass `--embed-provider hash|http`
