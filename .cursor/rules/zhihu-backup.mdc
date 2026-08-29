@@ -9,6 +9,7 @@ alwaysApply: false
 - Storage changes go through `StorageEngine` (`sqlite` / `json` / `rocksdb`).
 - Content paths: `data/contents/.../{type}_{parent?}_{zhihu_id}.md` — parent when present (e.g. `answer_{qid}_{aid}`); no Chinese filenames.
 - Meta key: `{type}:{parent_id}:{zhihu_id}` or `{type}:{zhihu_id}`.
+- Meta `items.extra` + frontmatter: typed IDs (`answer_id`/`question_id`, …); `item_assets` links item_key → asset URLs (keep global `assets` for dedupe).
 - Default sync is incremental (`updated_at`); do not force `--full` unless asked.
 - Cookie/state live in `data/meta/`; never commit secrets.
 - CLI agent mode: prefer `--json` (stdout JSON, stderr logs).

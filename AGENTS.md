@@ -15,6 +15,8 @@ data/
 
 - Filenames: `{type}_{parent_id}_{zhihu_id}.md` when parent exists (e.g. `answer_{qid}_{aid}`), else `{type}_{zhihu_id}.md` (no Chinese)
 - Meta key: `{type}:{parent_id}:{zhihu_id}` or `{type}:{zhihu_id}`
+- Frontmatter + `items.extra`: typed business IDs (`answer_id`/`question_id`, `article_id`/`column_id`, …) via `business_extra`
+- Assets: global `assets(url→path)` for dedupe; `item_assets(item_key, asset_url)` links content to resources
 - State engines: `--engine sqlite|json|rocksdb` (rocksdb is a file-backed stub in MVP)
 
 ## Commands

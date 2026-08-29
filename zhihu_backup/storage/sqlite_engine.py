@@ -55,6 +55,11 @@ class SqliteEngine(StorageEngine):
                 url TEXT PRIMARY KEY,
                 path TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS item_assets (
+                item_key TEXT NOT NULL,
+                asset_url TEXT NOT NULL,
+                PRIMARY KEY (item_key, asset_url)
+            );
             CREATE TABLE IF NOT EXISTS failed_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 key TEXT,
@@ -185,6 +190,22 @@ class SqliteEngine(StorageEngine):
             (url, path),
         )
         self._conn.commit()
+
+    def replace_item_assets(self, item_key: str, asset_urls: list[str]) -> None:
+        self._conn.execute("DELETE FROM item_assets WHERE item_key = ?", (item_key,))
+        for url in asset_urls:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO item_assets(item_key, asset_url) VALUES(?, ?)",
+                (item_key, url),
+            )
+        self._conn.commit()
+
+    def list_item_assets(self, item_key: str) -> list[str]:
+        rows = self._conn.execute(
+            "SELECT asset_url FROM item_assets WHERE item_key = ? ORDER BY asset_url",
+            (item_key,),
+        ).fetchall()
+        return [r["asset_url"] for r in rows]
 
     def record_failed(self, key: str, source: str, source_id: str, error: str) -> None:
         self._conn.execute(

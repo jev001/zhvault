@@ -44,6 +44,14 @@ class StorageEngine(ABC):
         ...
 
     @abstractmethod
+    def replace_item_assets(self, item_key: str, asset_urls: list[str]) -> None:
+        ...
+
+    @abstractmethod
+    def list_item_assets(self, item_key: str) -> list[str]:
+        ...
+
+    @abstractmethod
     def record_failed(self, key: str, source: str, source_id: str, error: str) -> None:
         ...
 

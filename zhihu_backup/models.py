@@ -17,6 +17,35 @@ def content_filename(item_type: str, zhihu_id: str, parent_id: Optional[str] = N
     return f"{item_type}_{zhihu_id}.md"
 
 
+def business_extra(item: "NormalizedItem") -> dict[str, str]:
+    """Typed Zhihu IDs for meta.extra / frontmatter (migration-friendly)."""
+    t = item.item_type
+    zid = item.zhihu_id
+    parent = item.parent_id
+    if t == "answer":
+        out = {"answer_id": zid}
+        if parent:
+            out["question_id"] = parent
+            out["parent_id"] = parent
+        return out
+    if t == "article":
+        out = {"article_id": zid}
+        if parent:
+            out["column_id"] = parent
+            out["parent_id"] = parent
+        return out
+    if t == "question":
+        return {"question_id": zid}
+    if t == "pin":
+        return {"pin_id": zid}
+    if t == "zvideo":
+        return {"zvideo_id": zid}
+    out = {f"{t}_id": zid}
+    if parent:
+        out["parent_id"] = parent
+    return out
+
+
 @dataclass
 class Checkpoint:
     source: str

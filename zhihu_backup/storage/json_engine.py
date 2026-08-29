@@ -28,6 +28,7 @@ class JsonEngine(StorageEngine):
             "items": {},
             "membership": [],
             "assets": {},
+            "item_assets": {},
             "failed_items": [],
         }
 
@@ -100,6 +101,22 @@ class JsonEngine(StorageEngine):
         with self._lock:
             self._data.setdefault("assets", {})[url] = path
             self._save()
+
+    def replace_item_assets(self, item_key: str, asset_urls: list[str]) -> None:
+        with self._lock:
+            # dedupe preserve order
+            seen: set[str] = set()
+            urls: list[str] = []
+            for u in asset_urls:
+                if u not in seen:
+                    seen.add(u)
+                    urls.append(u)
+            self._data.setdefault("item_assets", {})[item_key] = urls
+            self._save()
+
+    def list_item_assets(self, item_key: str) -> list[str]:
+        with self._lock:
+            return list((self._data.get("item_assets") or {}).get(item_key) or [])
 
     def record_failed(self, key: str, source: str, source_id: str, error: str) -> None:
         with self._lock:

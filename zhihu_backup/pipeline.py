@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from zhihu_backup.models import Checkpoint, ItemRecord, NormalizedItem, RunStats
+from zhihu_backup.models import Checkpoint, ItemRecord, NormalizedItem, RunStats, business_extra
 from zhihu_backup.sources.base import Source
 from zhihu_backup.storage.base import StorageEngine
 from zhihu_backup.writers.asset import AssetWriter
@@ -72,11 +72,10 @@ class Pipeline:
                 self.engine.link_membership(item.key, item.owner_kind, item.owner_id)
                 return "skipped"
 
-            body = self.assets.localize_markdown(item.markdown_body, self.contents.path_for(item).parent)
+            body, asset_urls = self.assets.localize_markdown(
+                item.markdown_body, self.contents.path_for(item).parent
+            )
             path = self.contents.write(item, body)
-            extra = {}
-            if item.parent_id:
-                extra["parent_id"] = item.parent_id
             record = ItemRecord(
                 key=item.key,
                 item_type=item.item_type,
@@ -88,9 +87,10 @@ class Pipeline:
                 path=str(path),
                 last_seen_at=_now(),
                 orphaned=False,
-                extra=extra,
+                extra=business_extra(item),
             )
             self.engine.upsert_item(record)
+            self.engine.replace_item_assets(item.key, asset_urls)
             self.engine.link_membership(item.key, item.owner_kind, item.owner_id)
             return "updated" if existing else "created"
         except Exception as e:

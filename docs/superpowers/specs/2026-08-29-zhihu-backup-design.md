@@ -26,8 +26,8 @@ data/
 
 - Filenames: `{type}_{parent_id}_{zhihu_id}.md` when parent exists (e.g. `answer_{qid}_{aid}`), else `{type}_{zhihu_id}.md` (no Chinese)
 - Meta key: `{type}:{parent_id}:{zhihu_id}` or `{type}:{zhihu_id}`
-- Frontmatter: `id`, `type`, `url`, `created`, `modified`, `sources[]`, optional `parent_id`, title (display only)
-- Sidecar index in meta engine: membership, dates, incremental fields
+- Frontmatter: `id`, `type`, `url`, `created`, `modified`, `sources[]`, typed business IDs (`answer_id`/`question_id`, …), optional `parent_id`, title (display only)
+- Sidecar index in meta engine: membership, dates, incremental fields, `item_assets`
 
 ### Parent ID by type
 
@@ -36,6 +36,19 @@ data/
 | answer | `question.id` | `answer_123_456.md` | `answer:123:456` |
 | article | `column.id` if present | `article_col_789.md` or `article_789.md` | matching key |
 | pin / question / zvideo / other | none | `{type}_{id}.md` | `{type}:{id}` |
+
+### Business IDs (`items.extra` + frontmatter)
+
+| type | fields |
+|------|--------|
+| answer | `answer_id`, `question_id`, `parent_id` |
+| article | `article_id`, optional `column_id`/`parent_id` |
+| pin / zvideo / question / other | `{type}_id` (question → `question_id`) |
+
+### Assets
+
+- Global map/table: `assets(url → path)` — content-addressed files under `data/assets/`
+- Links: `item_assets(item_key, asset_url)` — rewritten on create/update; skipped items leave links unchanged (use `--full` to backfill)
 
 ## Architecture
 
@@ -66,7 +79,8 @@ CLI (backup|resume|status|auth)
 - `upsert_item` / `get_item`
 - `link_membership`
 - `list_by` / `status_summary`
-- `record_failed` / asset URL map
+- `record_failed` / asset URL map (`get/set_asset_path`)
+- `replace_item_assets` / `list_item_assets`
 
 Default engine: **sqlite**. Switch via `--engine json|rocksdb`.
 

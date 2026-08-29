@@ -28,9 +28,10 @@ def test_localize_downloads_unique_urls(tmp_path: Path):
         ]
     )
     with patch("zhihu_backup.writers.asset.requests.get", side_effect=lambda *a, **k: _resp()) as get:
-        out = aw.localize_markdown(body, md_dir)
+        out, localized = aw.localize_markdown(body, md_dir)
     assert get.call_count == 3
     assert "https://cdn.example/" not in out
+    assert len(localized) == 3
     assert len(list((tmp_path / "assets").iterdir())) == 3
     engine.close()
 
@@ -42,8 +43,9 @@ def test_localize_dedupes_same_url(tmp_path: Path):
     md_dir.mkdir()
     body = "![a](https://cdn.example/same.png)\n![b](https://cdn.example/same.png)"
     with patch("zhihu_backup.writers.asset.requests.get", return_value=_resp()) as get:
-        out = aw.localize_markdown(body, md_dir)
+        out, localized = aw.localize_markdown(body, md_dir)
     assert get.call_count == 1
+    assert len(localized) == 1
     assert out.count("https://cdn.example/same.png") == 0
     engine.close()
 
@@ -61,9 +63,10 @@ def test_localize_keeps_url_on_download_failure(tmp_path: Path):
         return _resp()
 
     with patch("zhihu_backup.writers.asset.requests.get", side_effect=fake_get):
-        out = aw.localize_markdown(body, md_dir)
+        out, localized = aw.localize_markdown(body, md_dir)
     assert "https://cdn.example/bad.png" in out
     assert "https://cdn.example/ok.png" not in out
+    assert localized == ["https://cdn.example/ok.png"]
     engine.close()
 
 
@@ -79,7 +82,8 @@ def test_localize_skips_cached_asset(tmp_path: Path):
     md_dir = tmp_path / "md"
     md_dir.mkdir()
     with patch("zhihu_backup.writers.asset.requests.get") as get:
-        out = aw.localize_markdown(f"![c]({url})", md_dir)
+        out, localized = aw.localize_markdown(f"![c]({url})", md_dir)
     get.assert_not_called()
     assert "cached0123456789.png" in out
+    assert localized == [url]
     engine.close()

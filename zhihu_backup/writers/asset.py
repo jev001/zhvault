@@ -42,7 +42,7 @@ class AssetWriter:
         content, content_type = downloaded
         return self._store(url, content, content_type)
 
-    def localize_markdown(self, md_body: str, md_dir: Path) -> str:
+    def localize_markdown(self, md_body: str, md_dir: Path) -> tuple[str, list[str]]:
         urls = self._unique_http_urls(md_body)
         resolved: dict[str, Optional[Path]] = {}
         to_fetch: list[str] = []
@@ -68,6 +68,8 @@ class AssetWriter:
                     else:
                         resolved[url] = None
 
+        localized: list[str] = [u for u, path in resolved.items() if path is not None]
+
         out_lines = []
         for line in md_body.splitlines():
             parts = []
@@ -88,7 +90,7 @@ class AssetWriter:
                 last = match.end()
             parts.append(line[last:])
             out_lines.append("".join(parts))
-        return "\n".join(out_lines)
+        return "\n".join(out_lines), localized
 
     def _cached_path(self, url: str) -> Optional[Path]:
         cached = self.engine.get_asset_path(url)
