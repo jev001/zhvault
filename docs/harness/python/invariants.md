@@ -1,4 +1,4 @@
-# Hard invariants (zhvault)
+# Hard invariants (zhvault) — Python
 
 These are non-negotiable for agents and humans. Enforced by review + `make gate` + `src/tests/test_harness_invariants.py` where noted.
 

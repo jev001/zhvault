@@ -6,7 +6,8 @@ alwaysApply: false
 
 # zhvault harness
 
-- Green gate is `make gate` + CI workflow `harness-gate`.
+- Green gate is `make gate` + CI workflow `harness-gate` — see `docs/harness/build/gate.md`.
+- Protocol taxonomy: `docs/harness/{python,frontend,build,config}/` (map in `HARNESS.md`).
 - Do not gut `ruff.toml` select, delete invariant tests, or no-op the CI workflow to force green.
 - Do not instruct or use `--no-verify` to skip hooks.
 - Extending invariants is fine; removing them requires human approval.

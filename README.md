@@ -45,7 +45,7 @@ Engines: `sqlite` (default), `json`, `rocksdb` (MVP file-backed stub).
 
 Code lives under `src/` as the setuptools import root (imports are `cli`, `storage`, … — not `import zhvault`).
 
-Agent / vibe constraints: [HARNESS.md](HARNESS.md).
+Agent / vibe constraints: [HARNESS.md](HARNESS.md) (taxonomy: python / frontend / build / config under `docs/harness/`).
 
 ```bash
 make sync    # editable install + dev deps

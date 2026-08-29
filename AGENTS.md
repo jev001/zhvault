@@ -1,6 +1,6 @@
 # AGENTS.md — zhvault
 
-**Harness:** see [HARNESS.md](HARNESS.md). Required green check: `make gate` (ruff + full pytest). Anti-bypass: [docs/harness/anti-bypass.md](docs/harness/anti-bypass.md).
+**Harness:** see [HARNESS.md](HARNESS.md) (protocol taxonomy: python / frontend / build / config). Required green check: `make gate` (ruff + full pytest). Anti-bypass: [docs/harness/anti-bypass.md](docs/harness/anti-bypass.md). Invariants: [docs/harness/python/invariants.md](docs/harness/python/invariants.md).
 
 ## Goal
 

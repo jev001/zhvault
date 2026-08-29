@@ -1,0 +1,10 @@
+---
+description: No frontend invent — zhvault is CLI-only
+globs: docs/harness/frontend/**/*
+alwaysApply: false
+---
+
+# zhvault frontend (stub)
+
+- This repo has no first-party frontend. Do not add UI frameworks, `package.json`, or frontend gates unless a human explicitly requests a product UI with a design doc.
+- Protocol: `docs/harness/frontend/README.md`.

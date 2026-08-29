@@ -1,16 +1,16 @@
 ---
-description: zhvault project map + harness pointer
-globs: src/**/*.py,AGENTS.md,HARNESS.md,docs/superpowers/**/*.md
+description: zhvault project map + harness protocol taxonomy
+globs: src/**/*.py,AGENTS.md,HARNESS.md,docs/superpowers/**/*.md,docs/harness/**/*.md
 alwaysApply: true
 ---
 
 # zhvault
 
-- **Harness:** `HARNESS.md` — required green: `make gate`. No magic bypass (`docs/harness/anti-bypass.md`).
+- **Harness:** `HARNESS.md` — taxonomy: `docs/harness/{python,frontend,build,config}/`. Required green: `make gate`. No magic bypass (`docs/harness/anti-bypass.md`).
 - **CLI:** `zhvault` (deprecated script alias: `zhihu-backup` only).
 - **Code:** under `src/` as setuptools import root — imports are top-level (`cli`, `storage`, …), not `import zhvault`. Tests in `src/tests/`.
 - **Dev:** `make sync`, `pre-commit install`, `make gate`.
 - Default sync is incremental; do not force `--full` unless asked.
 - Cookie/state live in `data/meta/`; never commit secrets.
 - CLI agent mode: prefer `--json` (stdout JSON, stderr logs).
-- Scoped rules: `zhvault-storage.mdc`, `zhvault-mutate.mdc`, `zhvault-harness.mdc`.
+- Scoped rules: `zhvault-storage.mdc`, `zhvault-mutate.mdc`, `zhvault-harness.mdc`, `zhvault-frontend.mdc`.

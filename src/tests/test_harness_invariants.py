@@ -71,6 +71,12 @@ def test_gate_files_present():
         ROOT / "src" / "tests" / "test_harness_invariants.py",
         ROOT / "HARNESS.md",
         ROOT / "Makefile",
+        ROOT / "docs" / "harness" / "python" / "invariants.md",
+        ROOT / "docs" / "harness" / "frontend" / "README.md",
+        ROOT / "docs" / "harness" / "build" / "gate.md",
+        ROOT / "docs" / "harness" / "config" / "inventory.md",
+        ROOT / "docs" / "harness" / "anti-bypass.md",
+        ROOT / "docs" / "harness" / "verify.md",
     ]
     missing = [str(p.relative_to(ROOT)) for p in required if not p.is_file()]
     assert not missing, f"harness gate files missing: {missing}"

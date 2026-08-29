@@ -1,6 +1,6 @@
 # Anti-bypass (AI / vibe coding)
 
-The green gate is `make gate` locally and **harness-gate** CI remotely. Agents with repo write access can always edit code; bypass must stay **loud and reviewable**. The following **magic** moves are forbidden:
+The green gate is `make gate` locally and **harness-gate** CI remotely (see [build/gate.md](./build/gate.md)). Agents with repo write access can always edit code; bypass must stay **loud and reviewable**. The following **magic** moves are forbidden:
 
 ## Forbidden
 
