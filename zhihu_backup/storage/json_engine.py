@@ -132,7 +132,11 @@ class JsonEngine(StorageEngine):
     def upsert_graph_edge(self, edge: GraphEdge) -> None:
         with self._lock:
             key = self._graph_edge_key(edge.from_id, edge.to_id, edge.kind)
-            self._data.setdefault("graph_edges", {})[key] = edge.to_dict()
+            edges = self._data.setdefault("graph_edges", {})
+            existing = edges.get(key)
+            if edge.origin == "api" and existing and existing.get("origin") == "manual":
+                return
+            edges[key] = edge.to_dict()
             self._save()
 
     def remove_graph_edge(self, from_id: str, to_id: str, kind: str) -> None:

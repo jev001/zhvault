@@ -223,6 +223,13 @@ class SqliteEngine(StorageEngine):
         self._conn.commit()
 
     def upsert_graph_edge(self, edge: GraphEdge) -> None:
+        if edge.origin == "api":
+            row = self._conn.execute(
+                "SELECT origin FROM graph_edges WHERE from_id = ? AND to_id = ? AND kind = ?",
+                (edge.from_id, edge.to_id, edge.kind),
+            ).fetchone()
+            if row and row["origin"] == "manual":
+                return
         self._conn.execute(
             """
             INSERT OR REPLACE INTO graph_edges(from_id, to_id, kind, origin, seen_at)
