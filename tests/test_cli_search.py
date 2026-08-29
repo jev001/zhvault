@@ -212,7 +212,7 @@ def test_search_index_fails_without_backend_when_chroma_missing(monkeypatch, tmp
     payload = json.loads(err.out.strip() or err.err.strip().splitlines()[-1])
     text = json.dumps(payload)
     assert "chroma" in text.lower() or "install" in text.lower()
-    assert "zhihu-backup[chroma]" in text or "pip install" in text
+    assert "zhvault[chroma]" in text or "pip install" in text
 
 
 def test_search_semantic_no_index_fails(tmp_path, capsys):

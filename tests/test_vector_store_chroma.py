@@ -12,7 +12,7 @@ def test_open_chroma_missing_package_install_hint(monkeypatch, tmp_path: Path):
     monkeypatch.setitem(sys.modules, "chromadb", None)
     with pytest.raises(VectorBackendError, match=r"pip install") as excinfo:
         open_vector_store("chroma", tmp_path)
-    assert "zhihu-backup[chroma]" in str(excinfo.value)
+    assert "zhvault[chroma]" in str(excinfo.value)
 
 
 @pytest.mark.chroma

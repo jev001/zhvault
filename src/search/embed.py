@@ -44,7 +44,7 @@ class LocalEmbeddingProvider:
         except ImportError as exc:
             raise EmbedderError(
                 "local embedder requires sentence-transformers. "
-                "Install with: pip install 'zhihu-backup[search-ml]'"
+                "Install with: pip install 'zhvault[search-ml]'"
             ) from exc
         self.model_id = model or DEFAULT_LOCAL_MODEL
         self._model = SentenceTransformer(self.model_id)

@@ -44,7 +44,7 @@ def open_vector_store(backend: str, root: Path) -> VectorStore:
         except ImportError as exc:
             raise VectorBackendError(
                 "chroma backend requires chromadb. "
-                "Install with: pip install 'zhihu-backup[chroma]'"
+                "Install with: pip install 'zhvault[chroma]'"
             ) from exc
         from search.chroma_store import ChromaVectorStore
 

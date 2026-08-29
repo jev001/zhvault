@@ -15,7 +15,7 @@ from search.store import VectorBackendError
 
 ME_URL = "https://www.zhihu.com/api/v4/me"
 
-log = logging.getLogger("zhihu_backup")
+log = logging.getLogger("zhvault")
 
 
 def setup_logging(
@@ -156,7 +156,7 @@ def resolve_graph_query_backend(explicit: Optional[str], db_path: Path) -> str:
         if not kuzu_importable():
             raise KuzuBackendError(
                 "kuzu backend requires kuzu. "
-                "Install with: pip install 'zhihu-backup[kuzu]'"
+                "Install with: pip install 'zhvault[kuzu]'"
             )
         if not db_path.exists():
             raise KuzuBackendError(
@@ -182,7 +182,7 @@ def resolve_embed_provider(explicit: Optional[str]) -> str:
         return "local"
     raise EmbedProviderError(
         "no embed provider specified and sentence-transformers not installed. "
-        "Install with: pip install 'zhihu-backup[search-ml]' "
+        "Install with: pip install 'zhvault[search-ml]' "
         "or pass --embed-provider hash|http"
     )
 
@@ -204,7 +204,7 @@ def resolve_vector_backend(explicit: Optional[str]) -> str:
         return "chroma"
     raise VectorBackendError(
         "chroma backend requires chromadb. "
-        "Install with: pip install 'zhihu-backup[chroma]' "
+        "Install with: pip install 'zhvault[chroma]' "
         "(or pass --vector-backend memory)"
     )
 

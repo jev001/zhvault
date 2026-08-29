@@ -44,9 +44,9 @@ def _seed(eng: SqliteEngine) -> None:
 def test_sync_to_kuzu_missing_package_install_hint(monkeypatch, tmp_path: Path):
     monkeypatch.setitem(sys.modules, "kuzu", None)
     eng = SqliteEngine(tmp_path / "t.db")
-    with pytest.raises(Exception, match=r"zhihu-backup\[kuzu\]") as excinfo:
+    with pytest.raises(Exception, match=r"zhvault\[kuzu\]") as excinfo:
         sync_to_kuzu(eng, tmp_path / "kuzu")
-    assert "zhihu-backup[kuzu]" in str(excinfo.value)
+    assert "zhvault[kuzu]" in str(excinfo.value)
     eng.close()
 
 

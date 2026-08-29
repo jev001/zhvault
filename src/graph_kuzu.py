@@ -19,7 +19,7 @@ def _require_kuzu():
     except ImportError as exc:
         raise KuzuBackendError(
             "kuzu backend requires kuzu. "
-            "Install with: pip install 'zhihu-backup[kuzu]'"
+            "Install with: pip install 'zhvault[kuzu]'"
         ) from exc
     return kuzu
 

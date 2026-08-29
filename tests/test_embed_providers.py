@@ -20,7 +20,7 @@ def test_open_embedder_hash():
 
 def test_open_embedder_local_missing_package(monkeypatch):
     monkeypatch.setitem(sys.modules, "sentence_transformers", None)
-    with pytest.raises(EmbedderError, match=r"zhihu-backup\[search-ml\]"):
+    with pytest.raises(EmbedderError, match=r"zhvault\[search-ml\]"):
         open_embedder("local")
 
 

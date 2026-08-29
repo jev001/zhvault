@@ -1,4 +1,5 @@
 .PHONY: help sync install test lint fmt build zhvault
+.DEFAULT_GOAL := help
 
 help:
 	@echo "Targets: sync install test lint fmt build zhvault ARGS=..."

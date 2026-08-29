@@ -50,7 +50,7 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
     try:
         cookies = resolve_cookies(engine, Path(args.cookie_file) if args.cookie_file else None)
         if not cookies:
-            msg = {"ok": False, "error": "no cookie; run: zhihu-backup auth set-cookie Cookies.json"}
+            msg = {"ok": False, "error": "no cookie; run: zhvault auth set-cookie Cookies.json"}
             log.error("%s", msg["error"])
             if args.json:
                 json_print(msg)

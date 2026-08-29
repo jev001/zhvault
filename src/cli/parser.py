@@ -23,7 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--verbose", action="store_true", help="debug console + per-item skip logs")
     common.add_argument("--log-file", default=None, help="override log path (default data/logs/backup_YYYYMMDD.log)")
 
-    p = argparse.ArgumentParser(prog="zhihu-backup", description="Zhihu backup CLI", parents=[common])
+    p = argparse.ArgumentParser(prog="zhvault", description="Zhihu backup CLI (zhvault)", parents=[common])
     sub = p.add_subparsers(dest="command", required=True)
 
     auth = sub.add_parser("auth", help="authentication helpers", parents=[common])

@@ -117,7 +117,7 @@ def cmd_account_apply(args: argparse.Namespace) -> int:
     try:
         cookies = resolve_cookies(engine, Path(args.cookie_file) if args.cookie_file else None)
         if not cookies:
-            return cmd_fail(args, "no cookie; run: zhihu-backup auth set-cookie Cookies.json")
+            return cmd_fail(args, "no cookie; run: zhvault auth set-cookie Cookies.json")
         headers: dict[str, str] = {}
         if args.x_zse_96:
             headers["x-zse-96"] = args.x_zse_96

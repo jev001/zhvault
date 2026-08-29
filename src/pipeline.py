@@ -13,7 +13,7 @@ from writers.asset import AssetWriter
 from writers.content import ContentWriter
 from writers.person import PersonWriter
 
-log = logging.getLogger("zhihu_backup")
+log = logging.getLogger("zhvault")
 
 
 def _now() -> str:

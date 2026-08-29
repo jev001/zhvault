@@ -43,7 +43,7 @@ def test_graph_sync_missing_kuzu_package(monkeypatch, tmp_path, capsys):
     err = capsys.readouterr()
     out = json.loads(err.out.strip())
     assert out["event"] == "error"
-    assert "zhihu-backup[kuzu]" in out["error"]
+    assert "zhvault[kuzu]" in out["error"]
 
 
 def test_graph_query_backend_memory(tmp_path, capsys):
