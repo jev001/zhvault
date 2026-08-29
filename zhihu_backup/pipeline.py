@@ -199,13 +199,52 @@ class Pipeline:
         total = RunStats()
         log.info("pipeline run sources=%s resume=%s full=%s", len(sources), resume, self.full)
         for source in sources:
-            total.merge(self.run_source(source, resume=resume))
+            try:
+                total.merge(self.run_source(source, resume=resume))
+            except PermissionError as e:
+                total.source_errors += 1
+                log.error(
+                    "source error %s/%s (skipped; continuing): %s",
+                    source.name,
+                    source.source_id,
+                    e,
+                )
+                log.error(
+                    "CLI 403 while browser works often needs --x-zse-96 (cookie may still be valid)"
+                )
+                self._emit(
+                    {
+                        "event": "source_error",
+                        "source": source.name,
+                        "source_id": source.source_id,
+                        "error": str(e),
+                        "code": "auth",
+                    }
+                )
+            except Exception as e:
+                total.source_errors += 1
+                log.exception(
+                    "source error %s/%s (skipped; continuing): %s",
+                    source.name,
+                    source.source_id,
+                    e,
+                )
+                self._emit(
+                    {
+                        "event": "source_error",
+                        "source": source.name,
+                        "source_id": source.source_id,
+                        "error": str(e),
+                        "code": "error",
+                    }
+                )
         log.info(
-            "pipeline done fetched=%s created=%s updated=%s skipped=%s failed=%s",
+            "pipeline done fetched=%s created=%s updated=%s skipped=%s failed=%s source_errors=%s",
             total.fetched,
             total.created,
             total.updated,
             total.skipped,
             total.failed,
+            total.source_errors,
         )
         return total

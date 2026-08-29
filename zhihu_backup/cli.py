@@ -110,6 +110,14 @@ def _log_event(ev: dict[str, Any], *, verbose: bool) -> None:
             log.debug("item %s %s", action, key)
     elif event == "auth_error":
         log.error("auth error on %s: %s", ev.get("source"), ev.get("error"))
+    elif event == "source_error":
+        log.error(
+            "source error %s/%s code=%s: %s",
+            ev.get("source"),
+            ev.get("source_id"),
+            ev.get("code"),
+            ev.get("error"),
+        )
     elif verbose:
         log.debug("event %s", ev)
 
@@ -205,8 +213,9 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
             asset_workers=int(args.asset_workers),
         )
         stats = pipeline.run(sources, resume=resume)
+        ok = stats.failed == 0 and stats.source_errors == 0
         summary = {
-            "ok": True,
+            "ok": ok,
             "resume": resume,
             "full": bool(args.full),
             "engine": args.engine,
@@ -215,19 +224,21 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
             "data_dir": str(data_dir),
         }
         log.info(
-            "backup done fetched=%s created=%s updated=%s skipped=%s failed=%s",
+            "backup done fetched=%s created=%s updated=%s skipped=%s failed=%s source_errors=%s",
             stats.fetched,
             stats.created,
             stats.updated,
             stats.skipped,
             stats.failed,
+            stats.source_errors,
         )
         if args.json:
             _json_print({"event": "summary", **summary})
         else:
             print(json.dumps(summary, ensure_ascii=False, indent=2))
-        return 0 if stats.failed == 0 else 1
+        return 0 if ok else 1
     except PermissionError as e:
+        # Rare path (e.g. unexpected raise outside run()); per-source 403 is handled in Pipeline.run
         payload = {"ok": False, "error": str(e), "code": "auth"}
         log.error("auth failed: %s", e)
         if args.json:

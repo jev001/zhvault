@@ -45,6 +45,7 @@ Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`,
 
 - Same collection twice → second run mostly `skipped`
 - Interrupt then `resume` continues from checkpoint offset
+- One source HTTP 403 → `source_error` + continue other sources (`stats.source_errors`); try `--x-zse-96` if browser works
 - `--engine json` behaves like sqlite for the same contents tree
 - `status --json` / `backup --json` parse with `jq`
 - New content filenames contain no Chinese

@@ -136,6 +136,7 @@ class RunStats:
     updated: int = 0
     skipped: int = 0
     failed: int = 0
+    source_errors: int = 0
 
     def to_dict(self) -> dict[str, int]:
         return asdict(self)
@@ -146,3 +147,4 @@ class RunStats:
         self.updated += other.updated
         self.skipped += other.skipped
         self.failed += other.failed
+        self.source_errors += other.source_errors
