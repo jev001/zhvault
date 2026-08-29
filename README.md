@@ -36,6 +36,17 @@ make sync
 
 Optional: pass `--x-zse-96` if Zhihu requires it.
 
+## Deploy runner (ini + pid lock)
+
+Cron/systemd-friendly wrapper. Config: `deploy/zhvault.ini`. Locks: `data/run/{job}.pid` (removed on exit; blocks duplicate runs).
+
+```bash
+./deploy/run.sh              # list jobs
+./deploy/run.sh backup       # zhvault backup per [run.backup]
+./deploy/run.sh resume
+ZHVAULT_INI=/path/other.ini ./deploy/run.sh status
+```
+
 ## Usage
 
 ```bash

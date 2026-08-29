@@ -4,8 +4,10 @@ data/contents/**
 data/assets/**
 data/meta/**
 data/logs/**
+data/run/**
 !data/**/.gitkeep
 Cookies.json
+*.pid
 .venv/
 .review-venv/
 .pytest_cache/
