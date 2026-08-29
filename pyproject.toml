@@ -14,8 +14,16 @@ dependencies = [
   "PyYAML~=6.0",
 ]
 
+[project.optional-dependencies]
+chroma = ["chromadb>=0.5"]
+
 [project.scripts]
 zhihu-backup = "zhihu_backup.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["zhihu_backup*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "chroma: tests that require the optional chromadb extra",
+]

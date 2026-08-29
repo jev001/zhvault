@@ -4,6 +4,10 @@ from typing import Any, Mapping, Protocol, Sequence
 from zhihu_backup.search.types import VectorHit, VectorRecord
 
 
+class VectorBackendError(Exception):
+    """Raised when a vector backend cannot be opened (missing extra, etc.)."""
+
+
 class VectorStore(Protocol):
     name: str
 
@@ -24,7 +28,7 @@ class VectorStore(Protocol):
     def clear(self) -> None: ...
 
 
-_BACKENDS = ("memory",)
+_BACKENDS = ("memory", "chroma")
 
 
 def open_vector_store(backend: str, root: Path) -> VectorStore:
@@ -32,6 +36,17 @@ def open_vector_store(backend: str, root: Path) -> VectorStore:
         from zhihu_backup.search.memory_store import MemoryVectorStore
 
         return MemoryVectorStore()
+    if backend == "chroma":
+        try:
+            import chromadb  # noqa: F401
+        except ImportError as exc:
+            raise VectorBackendError(
+                "chroma backend requires chromadb. "
+                "Install with: pip install 'zhihu-backup[chroma]'"
+            ) from exc
+        from zhihu_backup.search.chroma_store import ChromaVectorStore
+
+        return ChromaVectorStore(root)
     raise ValueError(
         f"unknown vector backend {backend!r}; installed backends: {', '.join(_BACKENDS)}"
     )
