@@ -41,6 +41,17 @@ zhvault resume
 
 Engines: `sqlite` (default), `json`, `rocksdb` (MVP file-backed stub).
 
+## Development
+
+Code lives under `src/` as the setuptools import root (imports are `cli`, `storage`, … — not `import zhvault`).
+
+```bash
+make sync    # editable install + dev deps
+make test
+make lint
+make build   # wheel with zhvault console script
+```
+
 ## Data layout
 
 ```
@@ -53,7 +64,7 @@ Filenames: `{type}_{parent_id}_{zhihu_id}.md` when parent exists (e.g. `answer_{
 
 ## Agents
 
-See `AGENTS.md`, `.cursor/rules/zhihu-backup.mdc`, and `docs/agent-runbook.md`.
+See `AGENTS.md`, `.cursor/rules/zhvault.mdc`, and `docs/agent-runbook.md`.
 
 ## Legacy
 

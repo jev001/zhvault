@@ -1,11 +1,14 @@
 ---
-description: Zhihu backup package conventions
-globs: zhihu_backup/**/*.py,AGENTS.md,docs/superpowers/**/*.md
+description: zhvault project conventions (src import root)
+globs: src/**/*.py,tests/**/*.py,AGENTS.md,docs/superpowers/**/*.md
 alwaysApply: false
 ---
 
-# zhihu-backup
+# zhvault
 
+- **CLI:** `zhvault` (deprecated script alias: `zhihu-backup` only).
+- **Code:** under `src/` as setuptools import root — imports are top-level (`cli`, `storage`, …), not `import zhvault`.
+- **Dev:** `make sync`, `make test`, `make lint`.
 - Storage changes go through `StorageEngine` (`sqlite` / `json` / `rocksdb`).
 - Content paths: `data/contents/.../{type}_{parent?}_{zhihu_id}.md` — parent when present (e.g. `answer_{qid}_{aid}`); no Chinese filenames.
 - Meta key: `{type}:{parent_id}:{zhihu_id}` or `{type}:{zhihu_id}`.
