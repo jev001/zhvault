@@ -1,19 +1,29 @@
 import json
+import sys
 
-from cli import build_parser, main
+from cli import main
 from models import GraphEdge
 from storage import open_engine
 
 
-def test_parser_graph_query():
-    p = build_parser()
-    args = p.parse_args(
+def test_graph_query_parses_from_depth_kind(monkeypatch):
+    captured = {}
+
+    def fake_query(args):
+        captured.update(
+            {"from_id": args.from_id, "depth": args.depth, "kind": args.kind}
+        )
+        return 0
+
+    import cli.app  # noqa: F401
+
+    monkeypatch.setattr(sys.modules["cli.app"], "cmd_graph_query", fake_query)
+    assert main(
         ["graph", "query", "--from", "user:me", "--depth", "2", "--kind", "follows"]
-    )
-    assert args.func.__name__ == "cmd_graph_query"
-    assert args.from_id == "user:me"
-    assert args.depth == 2
-    assert args.kind == ["follows"]
+    ) == 0
+    assert captured["from_id"] == "user:me"
+    assert captured["depth"] == 2
+    assert captured["kind"] == ["follows"]
 
 
 def test_graph_query_cli_json(tmp_path, capsys):

@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
-from cli import build_parser, main
+from cli import main
 from models import GraphEdge, ItemRecord
 from mutate.apply import ApplyGateError, apply_plan, check_apply_gates
 from mutate.endpoints import follow_user_url
@@ -294,9 +295,18 @@ def test_cli_apply_refuses_without_flags(tmp_path: Path):
     assert rc == 2
 
 
-def test_parser_account():
-    p = build_parser()
-    args = p.parse_args(
+def test_account_apply_parses_danger_flags(monkeypatch):
+    captured = {}
+
+    def fake_apply(args):
+        captured["i_understand_danger"] = args.i_understand_danger
+        captured["confirm"] = args.confirm
+        return 0
+
+    import cli.app  # noqa: F401
+
+    monkeypatch.setattr(sys.modules["cli.app"], "cmd_account_apply", fake_apply)
+    assert main(
         [
             "account",
             "apply",
@@ -306,7 +316,6 @@ def test_parser_account():
             "--confirm",
             "APPLY",
         ]
-    )
-    assert args.func.__name__ == "cmd_account_apply"
-    assert args.i_understand_danger is True
-    assert args.confirm == "APPLY"
+    ) == 0
+    assert captured["i_understand_danger"] is True
+    assert captured["confirm"] == "APPLY"

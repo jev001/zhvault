@@ -1,7 +1,8 @@
 import json
+import sys
 from pathlib import Path
 
-from cli import build_parser, main, resolve_embed_provider
+from cli import main, resolve_embed_provider
 from models import GraphEdge, ItemRecord
 from storage import open_engine
 
@@ -44,17 +45,42 @@ def _seed_item(tmp_path: Path, *, with_edge: bool = False) -> None:
         eng.close()
 
 
-def test_parser_search_index():
-    p = build_parser()
-    args = p.parse_args(["search", "index", "--vector-backend", "memory", *HASH_FLAGS])
-    assert args.func.__name__ == "cmd_search_index"
-    assert args.vector_backend == "memory"
-    assert args.embed_provider == "hash"
+def test_search_index_parses_flags(monkeypatch):
+    captured = {}
+
+    def fake_index(args):
+        captured["vector_backend"] = args.vector_backend
+        captured["embed_provider"] = args.embed_provider
+        return 0
+
+    import cli.app  # noqa: F401
+
+    monkeypatch.setattr(sys.modules["cli.app"], "cmd_search_index", fake_index)
+    assert main(["search", "index", "--vector-backend", "memory", *HASH_FLAGS]) == 0
+    assert captured["vector_backend"] == "memory"
+    assert captured["embed_provider"] == "hash"
 
 
-def test_parser_search_semantic():
-    p = build_parser()
-    args = p.parse_args(
+def test_search_semantic_parses_flags(monkeypatch):
+    captured = {}
+
+    def fake_semantic(args):
+        captured.update(
+            {
+                "query": args.query,
+                "top_k": args.top_k,
+                "vector_backend": args.vector_backend,
+                "embed_provider": args.embed_provider,
+                "expand_graph": args.expand_graph,
+                "kind": args.kind,
+            }
+        )
+        return 0
+
+    import cli.app  # noqa: F401
+
+    monkeypatch.setattr(sys.modules["cli.app"], "cmd_search_semantic", fake_semantic)
+    assert main(
         [
             "search",
             "semantic",
@@ -69,14 +95,13 @@ def test_parser_search_semantic():
             "--kind",
             "follows",
         ]
-    )
-    assert args.func.__name__ == "cmd_search_semantic"
-    assert args.query == "hello world"
-    assert args.top_k == 5
-    assert args.vector_backend == "memory"
-    assert args.embed_provider == "hash"
-    assert args.expand_graph == 2
-    assert args.kind == ["follows"]
+    ) == 0
+    assert captured["query"] == "hello world"
+    assert captured["top_k"] == 5
+    assert captured["vector_backend"] == "memory"
+    assert captured["embed_provider"] == "hash"
+    assert captured["expand_graph"] == 2
+    assert captured["kind"] == ["follows"]
 
 
 def test_resolve_embed_provider_explicit():

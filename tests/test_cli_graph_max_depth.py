@@ -1,6 +1,7 @@
 import json
+import sys
 
-from cli import build_parser, main
+from cli import main
 from models import ItemRecord
 from storage import open_engine
 
@@ -21,26 +22,48 @@ def test_backup_max_depth_two_exits_nonzero(tmp_path, capsys):
     assert "not implemented" in out["error"].lower()
 
 
-def test_parser_max_depth_default_on_backup_and_resume():
-    p = build_parser()
-    assert p.parse_args(["backup"]).max_depth == 1
-    assert p.parse_args(["resume"]).max_depth == 1
+def test_backup_max_depth_default_on_backup_and_resume(monkeypatch):
+    captured = {}
+
+    def fake_backup(args):
+        captured["backup"] = args.max_depth
+        return 0
+
+    def fake_resume(args):
+        captured["resume"] = args.max_depth
+        return 0
+
+    import cli.app  # noqa: F401
+
+    monkeypatch.setattr(sys.modules["cli.app"], "cmd_backup", fake_backup)
+    monkeypatch.setattr(sys.modules["cli.app"], "cmd_resume", fake_resume)
+    assert main(["backup"]) == 0
+    assert main(["resume"]) == 0
+    assert captured["backup"] == 1
+    assert captured["resume"] == 1
 
 
-def test_parser_graph_nested_like_auth():
-    p = build_parser()
-    rb = p.parse_args(["graph", "rebuild"])
-    assert rb.func.__name__ == "cmd_graph_rebuild"
-    add = p.parse_args(["graph", "edge", "add", "--from", "user:a", "--to", "user:b"])
-    assert add.func.__name__ == "cmd_graph_edge_add"
-    assert add.from_id == "user:a"
-    assert add.to_id == "user:b"
-    assert add.kind == "follows"
-    rem = p.parse_args(
+def test_graph_nested_commands_parse_edge_flags(monkeypatch):
+    captured = {}
+
+    def fake_add(args):
+        captured["add"] = (args.from_id, args.to_id, args.kind)
+        return 0
+
+    def fake_remove(args):
+        captured["remove"] = (args.from_id, args.to_id, args.kind)
+        return 0
+
+    import cli.app  # noqa: F401
+
+    monkeypatch.setattr(sys.modules["cli.app"], "cmd_graph_edge_add", fake_add)
+    monkeypatch.setattr(sys.modules["cli.app"], "cmd_graph_edge_remove", fake_remove)
+    assert main(["graph", "edge", "add", "--from", "user:a", "--to", "user:b"]) == 0
+    assert captured["add"] == ("user:a", "user:b", "follows")
+    assert main(
         ["graph", "edge", "remove", "--from", "user:a", "--to", "user:b", "--kind", "asked"]
-    )
-    assert rem.func.__name__ == "cmd_graph_edge_remove"
-    assert rem.kind == "asked"
+    ) == 0
+    assert captured["remove"] == ("user:a", "user:b", "asked")
 
 
 def test_graph_rebuild_offline_no_cookies(tmp_path, capsys):

@@ -3,25 +3,39 @@ import sys
 
 import pytest
 
-from cli import build_parser, main
+from cli import main
 from models import GraphEdge
 from storage import open_engine
 
 
-def test_parser_graph_sync():
-    p = build_parser()
-    args = p.parse_args(["graph", "sync", "--backend", "kuzu", "--json"])
-    assert args.func.__name__ == "cmd_graph_sync"
-    assert args.backend == "kuzu"
+def test_graph_sync_parses_backend(monkeypatch):
+    captured = {}
+
+    def fake_sync(args):
+        captured["backend"] = args.backend
+        return 0
+
+    import cli.app  # noqa: F401
+
+    monkeypatch.setattr(sys.modules["cli.app"], "cmd_graph_sync", fake_sync)
+    assert main(["graph", "sync", "--backend", "kuzu", "--json"]) == 0
+    assert captured["backend"] == "kuzu"
 
 
-def test_parser_graph_query_backend():
-    p = build_parser()
-    args = p.parse_args(
+def test_graph_query_parses_backend(monkeypatch):
+    captured = {}
+
+    def fake_query(args):
+        captured["backend"] = args.backend
+        return 0
+
+    import cli.app  # noqa: F401
+
+    monkeypatch.setattr(sys.modules["cli.app"], "cmd_graph_query", fake_query)
+    assert main(
         ["graph", "query", "--from", "user:me", "--depth", "2", "--backend", "memory"]
-    )
-    assert args.func.__name__ == "cmd_graph_query"
-    assert args.backend == "memory"
+    ) == 0
+    assert captured["backend"] == "memory"
 
 
 def test_graph_sync_missing_kuzu_package(monkeypatch, tmp_path, capsys):
