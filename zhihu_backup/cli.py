@@ -352,6 +352,7 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
             on_event=on_event,
             session=client.session,
             asset_workers=int(args.asset_workers),
+            asset_link=str(getattr(args, "asset_link", "wikilink")),
         )
         stats = pipeline.run(sources, resume=resume)
         ok = stats.failed == 0 and stats.source_errors == 0
@@ -675,6 +676,12 @@ def build_parser() -> argparse.ArgumentParser:
             type=int,
             default=8,
             help="parallel image download workers (default 8; use 1 for serial)",
+        )
+        sp.add_argument(
+            "--asset-link",
+            choices=["wikilink", "rel", "assets-root"],
+            default="wikilink",
+            help="image link style in markdown (default wikilink for Obsidian)",
         )
         sp.add_argument(
             "--max-depth",

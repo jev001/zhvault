@@ -96,11 +96,45 @@ class JsonEngine(StorageEngine):
 
     def get_asset_path(self, url: str) -> Optional[str]:
         with self._lock:
-            return (self._data.get("assets") or {}).get(url)
+            raw = (self._data.get("assets") or {}).get(url)
+            if raw is None:
+                return None
+            if isinstance(raw, dict):
+                return raw.get("path")
+            return str(raw)
 
-    def set_asset_path(self, url: str, path: str) -> None:
+    def get_asset_meta(self, url: str) -> dict[str, str]:
         with self._lock:
-            self._data.setdefault("assets", {})[url] = path
+            raw = (self._data.get("assets") or {}).get(url)
+            if not isinstance(raw, dict):
+                return {}
+            out: dict[str, str] = {}
+            if raw.get("source_url"):
+                out["source_url"] = str(raw["source_url"])
+            if raw.get("origin_url"):
+                out["origin_url"] = str(raw["origin_url"])
+            return out
+
+    def set_asset_path(
+        self,
+        url: str,
+        path: str,
+        *,
+        source_url: Optional[str] = None,
+        origin_url: Optional[str] = None,
+    ) -> None:
+        with self._lock:
+            assets = self._data.setdefault("assets", {})
+            prev = assets.get(url)
+            prev_dict = prev if isinstance(prev, dict) else {}
+            entry = {"path": path}
+            src = source_url or prev_dict.get("source_url")
+            ori = origin_url or prev_dict.get("origin_url")
+            if src:
+                entry["source_url"] = src
+            if ori:
+                entry["origin_url"] = ori
+            assets[url] = entry
             self._save()
 
     def replace_item_assets(self, item_key: str, asset_urls: list[str]) -> None:

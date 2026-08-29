@@ -142,6 +142,7 @@ class NormalizedItem:
     owner_id: str = "default"
     sources: list[str] = field(default_factory=list)
     parent_id: Optional[str] = None
+    asset_refs: list[dict[str, str]] = field(default_factory=list)
 
     @property
     def key(self) -> str:

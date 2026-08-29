@@ -36,11 +36,14 @@ class Pipeline:
         on_event: Optional[Callable[[dict[str, Any]], None]] = None,
         session=None,
         asset_workers: int = 8,
+        asset_link: str = "wikilink",
     ):
         self.engine = engine
         self.contents = ContentWriter(contents_root)
         self.people = PersonWriter(contents_root)
-        self.assets = AssetWriter(assets_root, engine, session=session, workers=asset_workers)
+        self.assets = AssetWriter(
+            assets_root, engine, session=session, workers=asset_workers, asset_link=asset_link
+        )
         self.full = full
         self.limit = limit
         self.on_event = on_event
@@ -130,9 +133,13 @@ class Pipeline:
                 self.engine.link_membership(item.key, item.owner_kind, item.owner_id)
                 return "skipped"
 
-            body, asset_urls = self.assets.localize_markdown(
+            body, asset_urls, refs = self.assets.localize_markdown(
                 item.markdown_body, self.contents.path_for(item).parent
             )
+            item.asset_refs = [
+                {"file": r.file, "path": r.path, "source": r.source, "origin": r.origin}
+                for r in refs
+            ]
             path = self.contents.write(item, body)
             record = ItemRecord(
                 key=item.key,

@@ -19,7 +19,7 @@ data/
 - Filenames: `{type}_{parent_id}_{zhihu_id}.md` when parent exists (e.g. `answer_{qid}_{aid}`), else `{type}_{zhihu_id}.md` (no Chinese)
 - Meta key: `{type}:{parent_id}:{zhihu_id}` or `{type}:{zhihu_id}`
 - Frontmatter + `items.extra`: typed business IDs (`answer_id`/`question_id`, `article_id`/`column_id`, …) via `business_extra`
-- Assets: global `assets(url→path)` for dedupe; `item_assets(item_key, asset_url)` links content to resources
+- Assets: prefer original zhimg URLs (strip `_720w` etc.); meta stores `source_url`/`origin_url`; default MD uses HTML comments + Obsidian `![[assets/{file}]]` plus frontmatter `assets: [{file,path,source,origin}]`. Override with `--asset-link rel|wikilink|assets-root`. Vault/site root = `data/` for Obsidian / Hexo / Next (`public/assets`).
 - State engines: `--engine sqlite|json|rocksdb` (rocksdb is a file-backed stub in MVP)
 
 ## Commands
@@ -45,7 +45,7 @@ python -m zhihu_backup search semantic "query" --embed-provider local --json
 python -m zhihu_backup search semantic "query" --expand-graph 1 --kind follows --json
 ```
 
-Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`, `--x-zse-96`, `--asset-workers`, `--json`, `--vector-backend`, `--embed-provider`, `--embed-model`, `--embed-api-base`, `--embed-api-key`.
+Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`, `--x-zse-96`, `--asset-workers`, `--asset-link`, `--json`, `--vector-backend`, `--embed-provider`, `--embed-model`, `--embed-api-base`, `--embed-api-key`.
 
 Optional extras:
 - `pip install 'zhihu-backup[chroma]'` — durable Chroma vector index. Default `--vector-backend` is chroma when importable; otherwise the CLI fails with an install hint (pass `--vector-backend memory` only for tests).

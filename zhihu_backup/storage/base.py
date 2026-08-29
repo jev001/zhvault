@@ -40,8 +40,19 @@ class StorageEngine(ABC):
         ...
 
     @abstractmethod
-    def set_asset_path(self, url: str, path: str) -> None:
+    def set_asset_path(
+        self,
+        url: str,
+        path: str,
+        *,
+        source_url: Optional[str] = None,
+        origin_url: Optional[str] = None,
+    ) -> None:
         ...
+
+    def get_asset_meta(self, url: str) -> dict[str, str]:
+        """Optional source_url / origin_url for an asset key. Default empty."""
+        return {}
 
     @abstractmethod
     def replace_item_assets(self, item_key: str, asset_urls: list[str]) -> None:

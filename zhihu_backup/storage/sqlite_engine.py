@@ -78,7 +78,15 @@ class SqliteEngine(StorageEngine):
             );
             """
         )
+        self._migrate_assets_columns()
         self._conn.commit()
+
+    def _migrate_assets_columns(self) -> None:
+        cols = {row[1] for row in self._conn.execute("PRAGMA table_info(assets)").fetchall()}
+        if "source_url" not in cols:
+            self._conn.execute("ALTER TABLE assets ADD COLUMN source_url TEXT")
+        if "origin_url" not in cols:
+            self._conn.execute("ALTER TABLE assets ADD COLUMN origin_url TEXT")
 
     def get_cookie(self) -> dict[str, str]:
         row = self._conn.execute("SELECT v FROM kv WHERE k = ?", ("cookie",)).fetchone()
@@ -189,13 +197,36 @@ class SqliteEngine(StorageEngine):
         row = self._conn.execute("SELECT path FROM assets WHERE url = ?", (url,)).fetchone()
         return row["path"] if row else None
 
-    def set_asset_path(self, url: str, path: str) -> None:
+    def get_asset_meta(self, url: str) -> dict[str, str]:
+        row = self._conn.execute(
+            "SELECT source_url, origin_url FROM assets WHERE url = ?", (url,)
+        ).fetchone()
+        if not row:
+            return {}
+        out: dict[str, str] = {}
+        if row["source_url"]:
+            out["source_url"] = str(row["source_url"])
+        if row["origin_url"]:
+            out["origin_url"] = str(row["origin_url"])
+        return out
+
+    def set_asset_path(
+        self,
+        url: str,
+        path: str,
+        *,
+        source_url: Optional[str] = None,
+        origin_url: Optional[str] = None,
+    ) -> None:
         self._conn.execute(
             """
-            INSERT INTO assets(url, path) VALUES(?, ?)
-            ON CONFLICT(url) DO UPDATE SET path = excluded.path
+            INSERT INTO assets(url, path, source_url, origin_url) VALUES(?, ?, ?, ?)
+            ON CONFLICT(url) DO UPDATE SET
+                path = excluded.path,
+                source_url = COALESCE(excluded.source_url, assets.source_url),
+                origin_url = COALESCE(excluded.origin_url, assets.origin_url)
             """,
-            (url, path),
+            (url, path, source_url, origin_url),
         )
         self._conn.commit()
 

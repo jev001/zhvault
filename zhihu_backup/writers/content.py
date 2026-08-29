@@ -46,5 +46,15 @@ class ContentWriter:
             data["author_badge"] = item.author_badge
         if item.location:
             data["location"] = item.location
+        if item.asset_refs:
+            data["assets"] = [
+                {
+                    "file": a.get("file", ""),
+                    "path": a.get("path", ""),
+                    "source": a.get("source", ""),
+                    "origin": a.get("origin", ""),
+                }
+                for a in item.asset_refs
+            ]
         data = {k: v for k, v in data.items() if v is not None}
         return yaml.dump(data, allow_unicode=True, sort_keys=False, default_flow_style=False)
