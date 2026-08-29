@@ -13,19 +13,29 @@ CLI package `zhihu-backup` that backs up Zhihu collections, pins (ideas), asked 
 - Auto-refresh of `x-zse-96`
 - GUI
 - Full RocksDB production hardening (stub acceptable)
+- Migrating / deleting existing on-disk contents or meta keys after naming changes (user clears locally then `--full`)
 
 ## Layout
 
 ```
 data/
-  contents/{collections|pins|asked_questions|followed_questions|votes}/{owner_id}/{type}_{zhihu_id}.md
+  contents/{collections|pins|asked_questions|followed_questions|votes}/{owner_id}/{type}_{parent?}_{zhihu_id}.md
   assets/{sha16}{ext}
   meta/{sqlite|json|rocksdb}/...
 ```
 
-- Filenames: `type_{zhihu_id}` only (no Chinese titles)
-- Frontmatter: `id`, `type`, `url`, `created`, `modified`, `sources[]`, title (display only)
+- Filenames: `{type}_{parent_id}_{zhihu_id}.md` when parent exists (e.g. `answer_{qid}_{aid}`), else `{type}_{zhihu_id}.md` (no Chinese)
+- Meta key: `{type}:{parent_id}:{zhihu_id}` or `{type}:{zhihu_id}`
+- Frontmatter: `id`, `type`, `url`, `created`, `modified`, `sources[]`, optional `parent_id`, title (display only)
 - Sidecar index in meta engine: membership, dates, incremental fields
+
+### Parent ID by type
+
+| type | parent source | example filename | example key |
+|------|---------------|------------------|-------------|
+| answer | `question.id` | `answer_123_456.md` | `answer:123:456` |
+| article | `column.id` if present | `article_col_789.md` or `article_789.md` | matching key |
+| pin / question / zvideo / other | none | `{type}_{id}.md` | `{type}:{id}` |
 
 ## Architecture
 
@@ -38,7 +48,7 @@ CLI (backup|resume|status|auth)
 
 ### Incremental
 
-- Stable key: `type:zhihu_id` (e.g. `answer:123`)
+- Stable key: `{type}:{parent_id}:{zhihu_id}` or `{type}:{zhihu_id}`
 - Skip body/images when remote `updated_at` unchanged
 - Default mode: incremental; `--full` forces re-validate
 - Orphaned remote removals: keep local, mark `orphaned`

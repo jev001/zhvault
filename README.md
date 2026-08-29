@@ -43,10 +43,12 @@ Engines: `sqlite` (default), `json`, `rocksdb` (MVP file-backed stub).
 ## Data layout
 
 ```
-data/contents/.../{type}_{zhihu_id}.md
+data/contents/.../{type}_{parent?}_{zhihu_id}.md
 data/assets/{sha16}{ext}
 data/meta/{engine}/...
 ```
+
+Filenames: `{type}_{parent_id}_{zhihu_id}.md` when parent exists (e.g. `answer_{qid}_{aid}`), else `{type}_{zhihu_id}.md`. Meta key: `{type}:{parent_id}:{zhihu_id}` or `{type}:{zhihu_id}`.
 
 ## Agents
 

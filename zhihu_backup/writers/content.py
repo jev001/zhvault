@@ -5,7 +5,7 @@ from typing import Any
 
 import yaml
 
-from zhihu_backup.models import NormalizedItem
+from zhihu_backup.models import NormalizedItem, content_filename
 
 
 class ContentWriter:
@@ -17,7 +17,7 @@ class ContentWriter:
             self.contents_root
             / item.owner_kind
             / item.owner_id
-            / f"{item.item_type}_{item.zhihu_id}.md"
+            / content_filename(item.item_type, item.zhihu_id, item.parent_id)
         )
 
     def write(self, item: NormalizedItem, body: str) -> Path:
@@ -41,6 +41,8 @@ class ContentWriter:
             "comment_num": item.comment_num,
             "sources": item.sources or [f"{item.owner_kind}:{item.owner_id}"],
         }
+        if item.parent_id:
+            data["parent_id"] = item.parent_id
         if item.author_badge:
             data["author_badge"] = item.author_badge
         if item.location:

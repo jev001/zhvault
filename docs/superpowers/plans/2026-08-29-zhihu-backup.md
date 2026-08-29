@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Filenames: `type_{zhihu_id}` only (no Chinese)
+- Filenames: `{type}_{parent_id}_{zhihu_id}` when parent exists, else `{type}_{zhihu_id}` (no Chinese)
 - Contents dir name: `contents` (not `md`/`docs`)
 - Default incremental; `--full` for full validate
 - Cookie in meta engine, never commit

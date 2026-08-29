@@ -5,8 +5,16 @@ from datetime import datetime
 from typing import Any, Optional
 
 
-def item_key(item_type: str, zhihu_id: str) -> str:
+def item_key(item_type: str, zhihu_id: str, parent_id: Optional[str] = None) -> str:
+    if parent_id:
+        return f"{item_type}:{parent_id}:{zhihu_id}"
     return f"{item_type}:{zhihu_id}"
+
+
+def content_filename(item_type: str, zhihu_id: str, parent_id: Optional[str] = None) -> str:
+    if parent_id:
+        return f"{item_type}_{parent_id}_{zhihu_id}.md"
+    return f"{item_type}_{zhihu_id}.md"
 
 
 @dataclass
@@ -80,10 +88,11 @@ class NormalizedItem:
     owner_kind: str = "collections"
     owner_id: str = "default"
     sources: list[str] = field(default_factory=list)
+    parent_id: Optional[str] = None
 
     @property
     def key(self) -> str:
-        return item_key(self.item_type, self.zhihu_id)
+        return item_key(self.item_type, self.zhihu_id, self.parent_id)
 
     def updated_at_str(self) -> Optional[str]:
         if not self.modified:

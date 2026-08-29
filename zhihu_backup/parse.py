@@ -53,13 +53,18 @@ def normalize_content(
     url = content_data.get("url") or "#"
     title = "untitled"
     html = ""
+    parent_id: Optional[str] = None
 
     if item_type == "answer":
-        title = (content_data.get("question") or {}).get("title") or f"answer_{zhihu_id}"
+        q = content_data.get("question") or {}
+        parent_id = str(q.get("id") or "") or None
+        title = q.get("title") or f"answer_{zhihu_id}"
         html = content_data.get("content") or ""
         if not url or url == "#":
             url = f"https://www.zhihu.com/answer/{zhihu_id}"
     elif item_type == "article":
+        col = content_data.get("column") or {}
+        parent_id = str(col.get("id") or "") or None
         title = content_data.get("title") or f"article_{zhihu_id}"
         html = content_data.get("content") or ""
         if not url or url == "#":
@@ -123,6 +128,7 @@ def normalize_content(
         owner_kind=owner_kind,
         owner_id=owner_id,
         sources=[source_tag],
+        parent_id=parent_id,
     )
 
 
