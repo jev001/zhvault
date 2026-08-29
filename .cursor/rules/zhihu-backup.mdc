@@ -1,0 +1,14 @@
+---
+description: Zhihu backup package conventions
+globs: zhihu_backup/**/*.py,AGENTS.md,docs/superpowers/**/*.md
+alwaysApply: false
+---
+
+# zhihu-backup
+
+- Storage changes go through `StorageEngine` (`sqlite` / `json` / `rocksdb`).
+- Content paths: `data/contents/.../{type}_{zhihu_id}.md` — no Chinese filenames.
+- Default sync is incremental (`updated_at`); do not force `--full` unless asked.
+- Cookie/state live in `data/meta/`; never commit secrets.
+- CLI agent mode: prefer `--json` (stdout JSON, stderr logs).
+- MVP: no Zhihu-side cleanup, no auto `x-zse-96`, no GUI.

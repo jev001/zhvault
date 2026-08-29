@@ -1,0 +1,13 @@
+assets/*
+!assets/.gitkeep
+data/contents/**
+data/assets/**
+data/meta/**
+!data/**/.gitkeep
+Cookies.json
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+*.sqlite
+*.tmp

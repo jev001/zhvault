@@ -1,0 +1,9 @@
+{
+    "global_image_path": "assets",
+    "collections": [
+        {
+            "url": "https://www.zhihu.com/collection/912252771",
+            "path": "documents"
+        }
+    ]
+}
