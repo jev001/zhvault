@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from datetime import datetime, timezone
 from typing import Any
 
+from article_detail import fetch_article_detail
 from http_client import ZhihuClient
 from models import NormalizedItem, content_filename
 from parse import normalize_content
@@ -14,7 +15,6 @@ from sources.base import Source
 from sources.member_page import unwrap_column_row
 from zhihu_lists import (
     column_key,
-    fetch_article_detail,
     fetch_column_items,
     fetch_column_items_with_key_fallback,
     fetch_person_list,

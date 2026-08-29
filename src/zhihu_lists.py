@@ -264,6 +264,7 @@ def fetch_column_items_with_key_fallback(
 
 
 def fetch_article_detail(client: ZhihuClient, article_id: str) -> dict[str, Any]:
-    aid = str(article_id).strip()
-    data = client.get_json(f"{API_V4}/articles/{aid}")
-    return data if isinstance(data, dict) else {}
+    """Delegate to article_detail (API + zhuanlan HTML fallback)."""
+    from article_detail import fetch_article_detail as _fetch
+
+    return _fetch(client, article_id)

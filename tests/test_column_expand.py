@@ -29,7 +29,7 @@ def test_article_id_from_row_shapes():
 def test_column_expand_fetches_items_and_article_details():
     client = MagicMock()
 
-    def get_json(url, params=None):
+    def get_json(url, params=None, headers=None, **kwargs):
         u = str(url)
         if "column-contributions" in u or u.endswith("/columns"):
             return {
@@ -95,7 +95,7 @@ def test_column_expand_fetches_items_and_article_details():
 def test_column_expand_skips_failed_article_detail():
     client = MagicMock()
 
-    def get_json(url, params=None):
+    def get_json(url, params=None, headers=None, **kwargs):
         u = str(url)
         if "column-contributions" in u:
             return {
@@ -118,6 +118,7 @@ def test_column_expand_skips_failed_article_detail():
         raise AssertionError(u)
 
     client.get_json.side_effect = get_json
+    client.get_text.side_effect = FileNotFoundError("HTTP 404")
     src = ColumnExpandSource(client, "u")
     _off, items = next(iter(src.iter_items()))
     assert len(items) == 1
