@@ -16,6 +16,7 @@ dependencies = [
 
 [project.optional-dependencies]
 chroma = ["chromadb>=0.5"]
+search-ml = ["sentence-transformers>=3.0"]
 
 [project.scripts]
 zhihu-backup = "zhihu_backup.cli:main"
