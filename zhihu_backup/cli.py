@@ -19,6 +19,8 @@ from zhihu_backup.graph import query_graph, rebuild_graph
 from zhihu_backup.graph_kuzu import KuzuBackendError, query_kuzu, sync_to_kuzu
 from zhihu_backup.http_client import ZhihuClient
 from zhihu_backup.models import GraphEdge
+from zhihu_backup.mutate.apply import ApplyGateError, apply_plan
+from zhihu_backup.mutate.plan import build_plan, load_plan, parse_map_collection, parse_sources
 from zhihu_backup.pipeline import Pipeline
 from zhihu_backup.search.embed import EmbedderError, open_embedder
 from zhihu_backup.search.index import build_index, read_manifest
@@ -643,6 +645,134 @@ def cmd_graph_edge_remove(args: argparse.Namespace) -> int:
         engine.close()
 
 
+def cmd_account_plan(args: argparse.Namespace) -> int:
+    """Safe: build plan JSON from local inventory (GET only for migrate resolve)."""
+    try:
+        sources = parse_sources(args.source)
+        map_collection = parse_map_collection(getattr(args, "map_collection", None))
+    except ValueError as e:
+        return _cmd_fail(args, str(e))
+
+    mode = args.mode
+    data_dir = Path(args.data_dir)
+    if mode == "migrate":
+        if not args.from_data_dir:
+            return _cmd_fail(args, "migrate requires --from-data-dir")
+        inv_root = Path(args.from_data_dir)
+    else:
+        inv_root = data_dir
+
+    inv_meta_path = inv_root / "meta"
+    inv_meta_path.mkdir(parents=True, exist_ok=True)
+    inv_engine = open_engine(args.engine, inv_meta_path)
+
+    client: Optional[ZhihuClient] = None
+    actor_token: Optional[str] = None
+    try:
+        _, _, meta = _data_paths(data_dir)
+        act_engine = open_engine(args.engine, meta)
+        try:
+            cookies = resolve_cookies(
+                act_engine, Path(args.cookie_file) if args.cookie_file else None
+            )
+            if cookies:
+                headers: dict[str, str] = {}
+                if args.x_zse_96:
+                    headers["x-zse-96"] = args.x_zse_96
+                client = ZhihuClient(cookies, headers=headers or None)
+                try:
+                    me = client.get_json(ME_URL)
+                    actor_token = str(me.get("url_token") or me.get("id") or "") or None
+                except Exception as e:
+                    log.warning("account plan: /me failed (continuing offline): %s", e)
+        finally:
+            act_engine.close()
+
+        inventory_meta = {
+            "mode": mode,
+            "data_dir": str(data_dir.resolve()),
+            "from_data_dir": str(Path(args.from_data_dir).resolve()) if args.from_data_dir else None,
+            "engine": args.engine,
+            "map_collection": map_collection,
+        }
+        plan = build_plan(
+            mode=mode,
+            sources=sources,
+            inventory_engine=inv_engine,
+            map_collection=map_collection,
+            limit=args.limit,
+            client=client if mode == "migrate" else None,
+            actor_token=actor_token,
+            inventory_meta=inventory_meta,
+        )
+        summary = {
+            "event": "plan_summary",
+            "writes_executed": False,
+            "mode": mode,
+            "sources": sources,
+            "actor_hint": actor_token,
+            "fingerprint": plan["fingerprint"],
+            "counts": plan["counts"],
+            "action_count": len(plan["actions"]),
+            "collection_resolve": plan.get("collection_resolve") or [],
+        }
+        if args.json:
+            _json_print(plan)
+        else:
+            print(json.dumps(summary, ensure_ascii=False, indent=2))
+            print(json.dumps(plan, ensure_ascii=False, indent=2))
+        log.info(
+            "account plan ready mode=%s actions=%s fingerprint=%s",
+            mode,
+            len(plan["actions"]),
+            plan["fingerprint"][:12],
+        )
+        return 0
+    finally:
+        inv_engine.close()
+
+
+def cmd_account_apply(args: argparse.Namespace) -> int:
+    """DANGER: execute plan against Zhihu with stacked confirmations."""
+    plan_path = Path(args.plan)
+    if not plan_path.exists():
+        return _cmd_fail(args, f"plan not found: {plan_path}")
+    try:
+        plan = load_plan(plan_path)
+    except Exception as e:
+        return _cmd_fail(args, f"invalid plan: {e}")
+
+    data_dir = Path(args.data_dir)
+    _, _, meta = _data_paths(data_dir)
+    engine = open_engine(args.engine, meta)
+    try:
+        cookies = resolve_cookies(engine, Path(args.cookie_file) if args.cookie_file else None)
+        if not cookies:
+            return _cmd_fail(args, "no cookie; run: zhihu-backup auth set-cookie Cookies.json")
+        headers: dict[str, str] = {}
+        if args.x_zse_96:
+            headers["x-zse-96"] = args.x_zse_96
+        client = ZhihuClient(cookies, headers=headers or None)
+        try:
+            result = apply_plan(
+                plan,
+                client,
+                i_understand_danger=bool(args.i_understand_danger),
+                confirm=args.confirm,
+                open_engine_fn=open_engine,
+                skip_rebuild=False,
+            )
+        except ApplyGateError as e:
+            return _cmd_fail(args, str(e), code=2)
+        if args.json:
+            _json_print(result)
+        else:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1 if result.get("failed_count") else 0
+    finally:
+        engine.close()
+
+
 def build_parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--data-dir", default="data", help="root data directory")
@@ -805,6 +935,56 @@ def build_parser() -> argparse.ArgumentParser:
         help="edge kind filter for --expand-graph (repeatable); use 'all' for no filter",
     )
     ss.set_defaults(func=cmd_search_semantic)
+
+    acct = sub.add_parser(
+        "account",
+        help="DANGER-gated Zhihu follow/collect mutations (plan=safe, apply=writes)",
+        parents=[common],
+    )
+    acct_sub = acct.add_subparsers(dest="account_command", required=True)
+
+    ap = acct_sub.add_parser(
+        "plan",
+        help="build mutate plan from local inventory (no Zhihu writes)",
+        parents=[common],
+    )
+    ap.add_argument("--mode", choices=["prune", "migrate"], required=True)
+    ap.add_argument(
+        "--source",
+        required=True,
+        help="comma list: following,collection,followed (required; no default)",
+    )
+    ap.add_argument("--from-data-dir", default=None, help="account A data dir (migrate)")
+    ap.add_argument(
+        "--map-collection",
+        action="append",
+        default=[],
+        help="A_id=B_id collection map (repeatable; migrate)",
+    )
+    ap.add_argument("--limit", type=int, default=None, help="cap actions in plan")
+    ap.add_argument("--cookie-file", default=None)
+    ap.add_argument("--x-zse-96", default=None)
+    ap.set_defaults(func=cmd_account_plan)
+
+    aa = acct_sub.add_parser(
+        "apply",
+        help="DANGER: apply plan (requires --i-understand-danger and --confirm APPLY)",
+        parents=[common],
+    )
+    aa.add_argument("--plan", required=True, help="path to plan JSON from account plan")
+    aa.add_argument(
+        "--i-understand-danger",
+        action="store_true",
+        help="acknowledge live Zhihu account mutation",
+    )
+    aa.add_argument(
+        "--confirm",
+        default=None,
+        help="must be exactly APPLY to proceed",
+    )
+    aa.add_argument("--cookie-file", default=None)
+    aa.add_argument("--x-zse-96", default=None)
+    aa.set_defaults(func=cmd_account_apply)
 
     return p
 

@@ -43,22 +43,49 @@ class ZhihuClient:
             time.sleep(self.min_interval - elapsed)
 
     def get_json(self, url: str, params: Optional[dict[str, Any]] = None, retries: int = 3) -> dict[str, Any]:
+        return self.request_json("GET", url, params=params, retries=retries)
+
+    def request_json(
+        self,
+        method: str,
+        url: str,
+        *,
+        params: Optional[dict[str, Any]] = None,
+        json_body: Optional[dict[str, Any]] = None,
+        data: Optional[Any] = None,
+        retries: int = 3,
+    ) -> dict[str, Any]:
+        """HTTP JSON helper. Write methods (POST/PUT/DELETE/PATCH) are for account apply only."""
+        method_u = method.upper()
         last_err: Optional[Exception] = None
         for attempt in range(retries):
             self._throttle()
             try:
-                resp = self.session.get(url, params=params, timeout=self.timeout)
+                resp = self.session.request(
+                    method_u,
+                    url,
+                    params=params,
+                    json=json_body,
+                    data=data,
+                    timeout=self.timeout,
+                )
                 self._last_request_at = time.monotonic()
                 if resp.status_code in (401, 403):
-                    raise PermissionError(f"auth failed HTTP {resp.status_code} for {url}")
+                    raise PermissionError(f"auth failed HTTP {resp.status_code} for {method_u} {url}")
                 if resp.status_code == 429:
                     time.sleep(2 ** attempt)
                     continue
                 resp.raise_for_status()
-                return resp.json()
+                if not resp.content:
+                    return {}
+                try:
+                    out = resp.json()
+                except ValueError:
+                    return {"_raw": resp.text, "_status": resp.status_code}
+                return out if isinstance(out, dict) else {"data": out}
             except PermissionError:
                 raise
             except Exception as e:
                 last_err = e
                 time.sleep(2 ** attempt)
-        raise RuntimeError(f"GET failed {url}: {last_err}")
+        raise RuntimeError(f"{method_u} failed {url}: {last_err}")

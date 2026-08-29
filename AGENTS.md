@@ -43,9 +43,13 @@ python -m zhihu_backup search index --embed-provider hash --vector-backend memor
 python -m zhihu_backup search semantic "query" --top-k 10 --json
 python -m zhihu_backup search semantic "query" --embed-provider local --json
 python -m zhihu_backup search semantic "query" --expand-graph 1 --kind follows --json
+python -m zhihu_backup account plan --mode prune --source following,collection,followed --json
+python -m zhihu_backup account plan --mode migrate --from-data-dir ../a/data --source following,collection --json
+# DANGER — live Zhihu writes; requires stacked confirmations:
+python -m zhihu_backup account apply --plan plan.json --i-understand-danger --confirm APPLY --json
 ```
 
-Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`, `--x-zse-96`, `--asset-workers`, `--asset-link`, `--json`, `--vector-backend`, `--embed-provider`, `--embed-model`, `--embed-api-base`, `--embed-api-key`.
+Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`, `--x-zse-96`, `--asset-workers`, `--asset-link`, `--json`, `--vector-backend`, `--embed-provider`, `--embed-model`, `--embed-api-base`, `--embed-api-key`, `--from-data-dir`, `--map-collection`, `--i-understand-danger`, `--confirm`.
 
 Optional extras:
 - `pip install 'zhihu-backup[chroma]'` — durable Chroma vector index. Default `--vector-backend` is chroma when importable; otherwise the CLI fails with an install hint (pass `--vector-backend memory` only for tests).
@@ -67,7 +71,7 @@ Social / graph notes:
 1. Persist state only via `StorageEngine` (do not invent parallel index files).
 2. Prefer incremental; use `--full` only when explicitly required.
 3. Never commit `Cookies.json` / `data/meta/**` secrets.
-4. Do not implement Zhihu-side delete/uncollect in MVP.
+4. Zhihu-side follow/unfollow / collect/uncollect / question follow only via `account plan` (safe) + `account apply` with `--i-understand-danger` and `--confirm APPLY`. Never auto-write after backup.
 5. Keep `Main.py` as reference until migration is complete; new work goes in `zhihu_backup/`.
 6. Design/plan docs: `docs/superpowers/specs/`, `docs/superpowers/plans/`.
 
@@ -92,3 +96,5 @@ Social / graph notes:
 - `graph sync --backend kuzu` without kuzu package → non-zero + `pip install 'zhihu-backup[kuzu]'`
 - `graph query --backend kuzu` without prior sync → non-zero (no silent fallback to memory)
 - `graph query --backend memory` matches BFS on unified edges (same as pre-kuzu behavior)
+- `account plan` emits plan JSON with fingerprint; never POST/DELETE
+- `account apply` without both danger flags → non-zero, no writes; stale fingerprint → abort
