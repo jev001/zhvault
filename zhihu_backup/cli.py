@@ -251,7 +251,8 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
 
 
 def cmd_backup(args: argparse.Namespace) -> int:
-    return _run_backup(args, resume=True)
+    # --full revalidates from the start; checkpoint resume would skip already-scanned offsets
+    return _run_backup(args, resume=not bool(args.full))
 
 
 def cmd_resume(args: argparse.Namespace) -> int:
@@ -280,7 +281,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     def add_backup_flags(sp: argparse.ArgumentParser) -> None:
         sp.add_argument("--source", default="all", help="collection|pin|asked|followed|vote|all")
-        sp.add_argument("--full", action="store_true", help="force re-validate all items")
+        sp.add_argument("--full", action="store_true", help="re-validate from offset 0 (ignores checkpoint)")
         sp.add_argument("--limit", type=int, default=20)
         sp.add_argument("--cookie-file", default=None)
         sp.add_argument("--url-config", default="url.json")
