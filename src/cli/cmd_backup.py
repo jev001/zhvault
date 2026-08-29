@@ -6,7 +6,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from auth import collection_ids_from_config, load_url_config, parse_people_ref, resolve_cookies
+from auth import (
+    collection_ids_from_config,
+    load_url_config,
+    parse_people_ref,
+    resolve_cookies,
+    resolve_member_profile,
+)
 from http_client import ZhihuClient
 from pipeline import Pipeline
 from sources import build_sources
@@ -87,8 +93,31 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
             headers["x-zse-96"] = args.x_zse_96
 
         client = ZhihuClient(cookies, headers=headers or None)
-        config = load_url_config(Path(args.url_config))
-        coll_ids = list(args.collection_id or []) or collection_ids_from_config(config)
+
+        if user_id:
+            try:
+                profile = resolve_member_profile(client, user_id)
+            except ValueError as e:
+                err = str(e)
+                log.error("%s", err)
+                if args.json:
+                    json_print({"event": "error", "error": err})
+                else:
+                    print(err, file=sys.stderr)
+                return 2
+            user_id = profile["url_token"]
+            log.info(
+                "resolved --user url_token=%s name=%s",
+                user_id,
+                profile.get("name") or "(unknown)",
+            )
+            # Do not mix caller's url.json collections with another profile.
+            coll_ids = list(args.collection_id or [])
+            if not coll_ids:
+                log.info("ignoring url.json collections because --user is set (pass --collection-id to override)")
+        else:
+            config = load_url_config(Path(args.url_config))
+            coll_ids = list(args.collection_id or []) or collection_ids_from_config(config)
 
         log.info(
             "backup resolve source=%s user=%s collections=%s",

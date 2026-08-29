@@ -56,17 +56,50 @@ def collection_ids_from_config(config: dict[str, Any]) -> list[str]:
 
 
 def parse_people_ref(raw: str) -> str:
-    """Extract Zhihu url_token from a token or people URL. Docs/tests use placeholders only."""
+    """Extract Zhihu url_token from token, /token, people/token, or people URL.
+
+    Docs/tests use placeholders only (never real handles).
+    """
     s = (raw or "").strip()
     if not s:
-        raise ValueError("empty --user; pass url_token or https://www.zhihu.com/people/<url_token>")
+        raise ValueError(
+            "empty --user; pass url_token, /url_token, people/url_token, "
+            "or https://www.zhihu.com/people/<url_token>"
+        )
     s = s.split("?", 1)[0].split("#", 1)[0].rstrip("/")
-    marker = "/people/"
-    if marker in s:
-        part = s.split(marker, 1)[1]
-        token = part.split("/", 1)[0].strip()
-    else:
-        token = s.strip().strip("/")
-    if not token or "/" in token or token in (".", ".."):
+    for prefix in (
+        "https://www.zhihu.com",
+        "http://www.zhihu.com",
+        "https://zhihu.com",
+        "http://zhihu.com",
+    ):
+        if s.lower().startswith(prefix):
+            s = s[len(prefix) :]
+            break
+    s = s.lstrip("/")
+    if s.lower().startswith("people/"):
+        s = s[7:]
+    token = s.split("/", 1)[0].strip()
+    if not token or token in (".", "..") or "/" in token:
         raise ValueError(f"invalid --user {raw!r}; expected url_token or people URL")
     return token
+
+
+def resolve_member_profile(client: Any, url_token: str) -> dict[str, str]:
+    """GET /members/{token}; raise ValueError if missing. Returns url_token + name."""
+    token = parse_people_ref(url_token)
+    url = f"https://www.zhihu.com/api/v4/members/{token}"
+    try:
+        data = client.get_json(url)
+    except Exception as e:
+        raise ValueError(
+            f"member not found or unreachable for --user {token!r}: {e}"
+        ) from e
+    if not isinstance(data, dict):
+        raise ValueError(f"member not found for --user {token!r}: empty response")
+    # Error payloads sometimes still JSON
+    if data.get("error") and not (data.get("url_token") or data.get("id")):
+        raise ValueError(f"member not found for --user {token!r}: {data.get('error')}")
+    resolved = str(data.get("url_token") or token).strip() or token
+    name = str(data.get("name") or data.get("fullname_name") or "").strip()
+    return {"url_token": resolved, "name": name}

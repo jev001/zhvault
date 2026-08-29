@@ -13,6 +13,9 @@ from sources.member_page import MemberPagedSource, unwrap_activity_row
 
 def test_parse_people_ref_token_and_url():
     assert parse_people_ref("example_token") == "example_token"
+    assert parse_people_ref("/example_token") == "example_token"
+    assert parse_people_ref("people/example_token") == "example_token"
+    assert parse_people_ref("/people/example_token") == "example_token"
     assert parse_people_ref("https://www.zhihu.com/people/example_token") == "example_token"
     assert parse_people_ref("https://www.zhihu.com/people/example_token/answers") == "example_token"
     assert parse_people_ref("https://www.zhihu.com/people/example_token?x=1") == "example_token"
@@ -112,3 +115,40 @@ def test_member_answer_source_paging():
     assert len(batches) == 1
     assert len(batches[0][1]) == 1
     assert batches[0][1][0].zhihu_id == "10"
+
+
+def test_member_paged_source_soft_404():
+    client = MagicMock()
+    client.get_json.side_effect = FileNotFoundError("HTTP 404")
+    src = MemberPagedSource(
+        client,
+        "example_token",
+        name="vote",
+        path="votes",
+        owner_kind="votes",
+        source_tag_prefix="vote",
+    )
+    assert src.total() == 0
+    assert list(src.iter_items()) == []
+
+
+def test_pipeline_404_does_not_count_source_error(tmp_path):
+    from pipeline import Pipeline
+    from sources.base import Source
+    from storage import open_engine
+
+    class Boom(Source):
+        name = "vote"
+        source_id = "example_token"
+
+        def total(self):
+            return None
+
+        def iter_items(self, offset=0, limit=20):
+            raise FileNotFoundError("HTTP 404 for GET .../votes")
+
+    engine = open_engine("sqlite", tmp_path / "meta")
+    pipe = Pipeline(engine, tmp_path / "contents", tmp_path / "assets")
+    stats = pipe.run([Boom()], resume=False)
+    assert stats.source_errors == 0
+    engine.close()

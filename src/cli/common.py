@@ -114,6 +114,13 @@ def log_event(ev: dict[str, Any], *, verbose: bool) -> None:
             ev.get("code"),
             ev.get("error"),
         )
+    elif event == "source_unavailable":
+        log.info(
+            "source unavailable %s/%s: %s",
+            ev.get("source"),
+            ev.get("source_id"),
+            ev.get("error"),
+        )
     elif verbose:
         log.debug("event %s", ev)
 

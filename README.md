@@ -59,7 +59,7 @@ zhvault backup --source answer --user https://www.zhihu.com/people/<url_token> -
 zhvault resume
 ```
 
-`--user` targets another profile (token or people URL). `--source people` requires `--user` and pulls activity/answers/zvideos/questions/articles/columns/pins/collections/following/followers for that member (visibility limited by your cookie). Examples use `<url_token>` placeholders only.
+`--user` targets another profile (token, `/token`, `people/token`, or people URL). With `--user`, `url.json` collections are ignored unless you pass `--collection-id`; the member is verified via API first. `--source people` requires `--user`. Member list 404 (e.g. private votes) is skipped softly. Examples use `<url_token>` placeholders only.
 
 (`zhihu-backup` remains as a deprecated script alias.)
 

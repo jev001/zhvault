@@ -81,6 +81,9 @@ class ZhihuClient:
                         url,
                     )
                     raise PermissionError(f"auth failed HTTP {resp.status_code} for {method_u} {url}")
+                if resp.status_code == 404:
+                    log.info("HTTP 404 %s %s (not found / private list)", method_u, url)
+                    raise FileNotFoundError(f"HTTP 404 for {method_u} {url}")
                 if resp.status_code == 429:
                     delay = 2 ** attempt
                     log.info(

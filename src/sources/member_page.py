@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Iterator
 from typing import Any
 
@@ -9,6 +10,8 @@ from http_client import ZhihuClient
 from models import NormalizedItem
 from parse import normalize_content
 from sources.base import Source
+
+log = logging.getLogger("zhvault.source")
 
 
 def unwrap_content_row(row: Any) -> dict[str, Any] | None:
@@ -71,13 +74,26 @@ class MemberPagedSource(Source):
         self._api = f"https://www.zhihu.com/api/v4/members/{self.source_id}/{path.lstrip('/')}"
 
     def total(self) -> int | None:
-        data = self.client.get_json(self._api, params={"offset": 0, "limit": 1})
+        try:
+            data = self.client.get_json(self._api, params={"offset": 0, "limit": 1})
+        except FileNotFoundError:
+            log.info("skip %s/%s: list 404 (private or missing)", self.name, self.source_id)
+            return 0
         return int((data.get("paging") or {}).get("totals") or 0)
 
     def iter_items(self, offset: int = 0, limit: int = 20) -> Iterator[tuple[int, list[NormalizedItem]]]:
         current = offset
         while True:
-            data = self.client.get_json(self._api, params={"offset": current, "limit": limit})
+            try:
+                data = self.client.get_json(self._api, params={"offset": current, "limit": limit})
+            except FileNotFoundError:
+                log.info(
+                    "skip %s/%s at offset=%s: list 404 (private or missing endpoint)",
+                    self.name,
+                    self.source_id,
+                    current,
+                )
+                return
             rows = data.get("data") or []
             items: list[NormalizedItem] = []
             for row in rows:

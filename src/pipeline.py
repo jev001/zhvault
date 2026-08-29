@@ -286,6 +286,23 @@ class Pipeline:
                         "code": "auth",
                     }
                 )
+            except FileNotFoundError as e:
+                # Private / missing member lists (e.g. others' votes) — not a hard failure.
+                log.info(
+                    "source unavailable %s/%s (404, continuing): %s",
+                    source.name,
+                    source.source_id,
+                    e,
+                )
+                self._emit(
+                    {
+                        "event": "source_unavailable",
+                        "source": source.name,
+                        "source_id": source.source_id,
+                        "error": str(e),
+                        "code": "not_found",
+                    }
+                )
             except Exception as e:
                 total.source_errors += 1
                 log.exception(
