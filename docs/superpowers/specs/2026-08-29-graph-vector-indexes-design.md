@@ -208,10 +208,10 @@ Default `pip install` / requirements.txt: **no chromadb**.
 
 ## Implementation order
 
-1. Phase **1a** `graph query` (SQLite/in-process BFS) + tests + AGENTS  
-2. Phase **2** `VectorStore` + `memory` + optional `chroma` + stub embedder + `search index|semantic`  
-3. Phase **1b** Kuzu only if needed  
-4. Real EmbeddingProvider extra when product-ready  
+1. Phase **1a** `graph query` (SQLite/in-process BFS) + tests + AGENTS — **done**
+2. Phase **2** `VectorStore` + `memory` + optional `chroma` + stub embedder + `search index|semantic` — **done**
+3. Phase **1b** Kuzu + real EmbeddingProviders — see [2026-08-29-kuzu-embeddings-design.md](./2026-08-29-kuzu-embeddings-design.md)
+4. ~~Real EmbeddingProvider extra when product-ready~~ → covered in kuzu-embeddings design (local + http)
 
 ## Risks / notes
 
