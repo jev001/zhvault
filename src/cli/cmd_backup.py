@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from auth import collection_ids_from_config, load_url_config, resolve_cookies
+from auth import collection_ids_from_config, load_url_config, parse_people_ref, resolve_cookies
 from http_client import ZhihuClient
 from pipeline import Pipeline
 from sources import build_sources
@@ -38,6 +38,30 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
             log.error(msg)
         return 2
 
+    user_ref = getattr(args, "user", None)
+    user_id: str | None = None
+    if user_ref:
+        try:
+            user_id = parse_people_ref(str(user_ref))
+        except ValueError as e:
+            err = str(e)
+            log.error("%s", err)
+            if args.json:
+                json_print({"event": "error", "error": err})
+            else:
+                print(err, file=sys.stderr)
+            return 2
+
+    source_name = (args.source or "all").lower()
+    if source_name == "people" and not user_id:
+        err = "--source people requires --user <url_token or people URL>"
+        log.error("%s", err)
+        if args.json:
+            json_print({"event": "error", "error": err})
+        else:
+            print(err, file=sys.stderr)
+        return 2
+
     data_dir = Path(args.data_dir)
     contents, assets, meta = data_paths(data_dir)
     engine = open_engine(args.engine, meta)
@@ -66,11 +90,22 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
         config = load_url_config(Path(args.url_config))
         coll_ids = list(args.collection_id or []) or collection_ids_from_config(config)
 
-        sources = build_sources(client, source=args.source, collection_ids=coll_ids)
+        log.info(
+            "backup resolve source=%s user=%s collections=%s",
+            source_name,
+            user_id or "(me)",
+            len(coll_ids),
+        )
+        sources = build_sources(
+            client,
+            source=args.source,
+            collection_ids=coll_ids,
+            user_id=user_id,
+        )
         if not sources:
             msg = {
                 "ok": False,
-                "error": "no sources resolved; check --source / url.json collections / login",
+                "error": "no sources resolved; check --source / --user / url.json collections / login",
             }
             log.error("%s", msg["error"])
             if args.json:
@@ -80,9 +115,10 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
             return 2
 
         log.info(
-            "backup start engine=%s source=%s full=%s resume=%s sources=%s",
+            "backup start engine=%s source=%s user=%s full=%s resume=%s sources=%s",
             args.engine,
             args.source,
+            user_id or "(me)",
             bool(args.full),
             resume,
             len(sources),
@@ -106,6 +142,7 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
             "full": bool(args.full),
             "engine": args.engine,
             "source": args.source,
+            "user": user_id,
             "stats": stats.to_dict(),
             "data_dir": str(data_dir),
         }

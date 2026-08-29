@@ -104,6 +104,12 @@ def normalize_content(
         html = content_data.get("detail") or content_data.get("excerpt") or ""
         # List APIs often return api URL; always prefer the public question page.
         url = f"https://www.zhihu.com/question/{zhihu_id}"
+    elif item_type == "column":
+        title = content_data.get("title") or f"column_{zhihu_id}"
+        html = content_data.get("intro") or content_data.get("description") or content_data.get("excerpt") or ""
+        if not url or url == "#":
+            url_token = str(content_data.get("url_token") or zhihu_id)
+            url = f"https://www.zhihu.com/column/{url_token}"
     else:
         title = content_data.get("title") or f"{item_type}_{zhihu_id}"
         raw = content_data.get("content", "")

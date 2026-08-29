@@ -55,6 +55,7 @@ cookie = g(sec, "cookie_file", g("common", "cookie_file", ""))
 xzse = g(sec, "x_zse_96", g("common", "x_zse_96", ""))
 cmd = g(sec, "cmd", "")
 source = g(sec, "source", "")
+user = g(sec, "user", g("common", "user", ""))
 full = g(sec, "full", "false").lower() in ("1", "true", "yes", "on")
 if not cmd:
     print(f"echo error: [{sec}] missing cmd= >&2; exit 2")
@@ -69,6 +70,7 @@ exports = {
     "X_ZSE_96": xzse,
     "ZH_CMD": cmd,
     "SOURCE": source,
+    "USER_REF": user,
     "FULL_FLAG": "1" if full else "0",
 }
 for k, v in exports.items():
@@ -110,6 +112,7 @@ ARGS=("$ZH_CMD" --data-dir "$DATA_DIR" --engine "$ENGINE")
 [[ -n "$COOKIE_FILE" ]] && ARGS+=(--cookie-file "$COOKIE_FILE")
 [[ -n "$X_ZSE_96" ]] && ARGS+=(--x-zse-96 "$X_ZSE_96")
 [[ -n "$SOURCE" ]] && ARGS+=(--source "$SOURCE")
+[[ -n "$USER_REF" ]] && ARGS+=(--user "$USER_REF")
 [[ "$FULL_FLAG" == "1" ]] && ARGS+=(--full)
 
 echo "info: start job=$JOB cmd=${RUN[*]} ${ARGS[*]} lock=$PIDFILE" >&2

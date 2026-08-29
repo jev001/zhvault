@@ -40,6 +40,8 @@ def business_extra(item: NormalizedItem) -> dict[str, str]:
         return {"pin_id": zid}
     if t == "zvideo":
         return {"zvideo_id": zid}
+    if t == "column":
+        return {"column_id": zid}
     if t == "user":
         return {"user_id": zid, "url_token": zid}
     out = {f"{t}_id": zid}

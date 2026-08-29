@@ -54,8 +54,12 @@ zhvault auth set-cookie Cookies.json
 zhvault status --json
 zhvault backup --source collection
 zhvault backup --source all --engine sqlite
+zhvault backup --source people --user <url_token> --json
+zhvault backup --source answer --user https://www.zhihu.com/people/<url_token> --json
 zhvault resume
 ```
+
+`--user` targets another profile (token or people URL). `--source people` requires `--user` and pulls activity/answers/zvideos/questions/articles/columns/pins/collections/following/followers for that member (visibility limited by your cookie). Examples use `<url_token>` placeholders only.
 
 (`zhihu-backup` remains as a deprecated script alias.)
 

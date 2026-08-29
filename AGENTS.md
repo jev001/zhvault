@@ -40,6 +40,7 @@ zhvault auth set-cookie Cookies.json
 zhvault status --json
 zhvault backup --source collection --json
 zhvault backup --source social --json
+zhvault backup --source people --user <url_token> --json
 zhvault resume --json
 zhvault graph rebuild --json
 zhvault graph sync --backend kuzu --json
@@ -60,7 +61,7 @@ zhvault account plan --mode migrate --from-data-dir ../a/data --source following
 zhvault account apply --plan plan.json --i-understand-danger --confirm APPLY --json
 ```
 
-Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`, `--x-zse-96`, `--asset-workers`, `--asset-link`, `--json`, `--vector-backend`, `--embed-provider`, `--embed-model`, `--embed-api-base`, `--embed-api-key`, `--from-data-dir`, `--map-collection`, `--i-understand-danger`, `--confirm`.
+Useful flags: `--data-dir`, `--engine`, `--source`, `--user`, `--full`, `--collection-id`, `--x-zse-96`, `--asset-workers`, `--asset-link`, `--json`, `--vector-backend`, `--embed-provider`, `--embed-model`, `--embed-api-base`, `--embed-api-key`, `--from-data-dir`, `--map-collection`, `--i-understand-danger`, `--confirm`.
 
 Optional extras:
 - `pip install 'zhvault[chroma]'` — durable Chroma vector index. Default `--vector-backend` is chroma when importable; otherwise the CLI fails with an install hint (pass `--vector-backend memory` only for tests).
@@ -71,6 +72,7 @@ Optional extras:
 Social / graph notes:
 
 - `--source all` does **not** include `following` / `followers`; run `--source social` explicitly.
+- `--user <url_token|people-URL>` selects a member profile for member-scoped sources; `--source people` requires `--user` (docs/examples: placeholders only). With `--user`, `all` also discovers that member’s collections and adds answer/article/column/zvideo/activity.
 - `graph rebuild` is **manual only** (not run after `backup` / `resume`); offline from stored items + membership + persisted `graph_edges`.
 - `graph query` is offline BFS over unified edges (derived + persisted); `--json` prints the query result dict (nodes + edges). `--backend auto|memory|kuzu` selects in-memory BFS vs synced Kuzu index.
 - `graph sync --backend kuzu` writes derived index to `meta/{engine}/graph_query/kuzu/` (offline; does not mutate `graph_edges`).

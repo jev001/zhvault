@@ -53,3 +53,20 @@ def collection_ids_from_config(config: dict[str, Any]) -> list[str]:
         if cid:
             ids.append(cid)
     return ids
+
+
+def parse_people_ref(raw: str) -> str:
+    """Extract Zhihu url_token from a token or people URL. Docs/tests use placeholders only."""
+    s = (raw or "").strip()
+    if not s:
+        raise ValueError("empty --user; pass url_token or https://www.zhihu.com/people/<url_token>")
+    s = s.split("?", 1)[0].split("#", 1)[0].rstrip("/")
+    marker = "/people/"
+    if marker in s:
+        part = s.split(marker, 1)[1]
+        token = part.split("/", 1)[0].strip()
+    else:
+        token = s.strip().strip("/")
+    if not token or "/" in token or token in (".", ".."):
+        raise ValueError(f"invalid --user {raw!r}; expected url_token or people URL")
+    return token
