@@ -1,4 +1,6 @@
 from pathlib import Path
+from unittest.mock import MagicMock
+
 from zhihu_backup.models import GraphEdge, ItemRecord
 from zhihu_backup.storage.sqlite_engine import SqliteEngine
 from zhihu_backup.graph import query_graph
@@ -59,3 +61,27 @@ def test_query_answers_kind(tmp_path: Path):
     out = query_graph(eng, start="answer:1:2", depth=1, kinds={"answers"})
     assert any(e["to"] == "question:1" for e in out["edges"])
     eng.close()
+
+
+def test_query_dedup_manual_over_api():
+    api = GraphEdge(
+        from_id="user:a",
+        to_id="user:b",
+        kind="follows",
+        origin="api",
+        seen_at="2026-01-01T00:00:00Z",
+    )
+    manual = GraphEdge(
+        from_id="user:a",
+        to_id="user:b",
+        kind="follows",
+        origin="manual",
+        seen_at="2026-01-02T00:00:00Z",
+    )
+    engine = MagicMock()
+    engine.list_items.return_value = []
+    engine.list_membership.return_value = []
+    engine.list_graph_edges.return_value = [api, manual]
+    out = query_graph(engine, start="user:a", depth=1, kinds={"follows"})
+    assert len(out["edges"]) == 1
+    assert out["edges"][0]["origin"] == "manual"

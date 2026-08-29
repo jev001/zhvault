@@ -67,6 +67,53 @@ def test_graph_query_cli_json(tmp_path, capsys):
     assert len(out["edges"]) == 1
 
 
+def test_graph_query_cli_kind_all(tmp_path, capsys):
+    meta = tmp_path / "meta"
+    meta.mkdir()
+    eng = open_engine("sqlite", meta)
+    try:
+        eng.upsert_graph_edge(
+            GraphEdge(
+                from_id="user:me",
+                to_id="user:friend",
+                kind="follows",
+                origin="manual",
+                seen_at="2026-01-01T00:00:00Z",
+            )
+        )
+        eng.upsert_graph_edge(
+            GraphEdge(
+                from_id="user:me",
+                to_id="answer:1:2",
+                kind="collected",
+                origin="manual",
+                seen_at="2026-01-01T00:00:00Z",
+            )
+        )
+    finally:
+        eng.close()
+
+    rc = main(
+        [
+            "graph",
+            "query",
+            "--from",
+            "user:me",
+            "--depth",
+            "1",
+            "--kind",
+            "all",
+            "--json",
+            "--data-dir",
+            str(tmp_path),
+        ]
+    )
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out.strip())
+    assert out["kinds"] is None
+    assert len(out["edges"]) == 2
+
+
 def test_graph_query_cli_human(tmp_path, capsys):
     meta = tmp_path / "meta"
     meta.mkdir()
