@@ -184,11 +184,18 @@ def _fetch_collection_title(client: ZhihuClient | None, collection_id: str) -> s
 
 def _list_member_collections(client: ZhihuClient, url_token: str) -> dict[str, str]:
     """title(lower) -> collection id for B."""
+    from zhihu_lists import fetch_person_list
+
     by_title: dict[str, str] = {}
-    url = endpoints.member_collections_url(url_token)
     offset = 0
+    bound: dict = {}
     while True:
-        data = client.get_json(url, params={"offset": offset, "limit": 20})
+        try:
+            data = fetch_person_list(
+                client, url_token, "collections", offset=offset, limit=20, _bound=bound
+            )
+        except FileNotFoundError:
+            break
         rows = data.get("data") or []
         if not rows:
             break

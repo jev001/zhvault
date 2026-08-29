@@ -33,4 +33,5 @@ def create_collection_url() -> str:
 
 
 def member_collections_url(url_token: str) -> str:
-    return f"https://www.zhihu.com/api/v4/members/{url_token}/collections"
+    """Primary browser route for profile collections tab (people + include applied in zhihu_lists)."""
+    return f"https://www.zhihu.com/api/v4/people/{url_token}/collections"

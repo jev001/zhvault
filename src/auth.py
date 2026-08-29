@@ -86,18 +86,18 @@ def parse_people_ref(raw: str) -> str:
 
 
 def resolve_member_profile(client: Any, url_token: str) -> dict[str, str]:
-    """GET /members/{token}; raise ValueError if missing. Returns url_token + name."""
+    """GET /people|members/{token}; raise ValueError if missing. Returns url_token + name."""
+    from zhihu_lists import fetch_profile
+
     token = parse_people_ref(url_token)
-    url = f"https://www.zhihu.com/api/v4/members/{token}"
     try:
-        data = client.get_json(url)
+        data = fetch_profile(client, token)
     except Exception as e:
         raise ValueError(
             f"member not found or unreachable for --user {token!r}: {e}"
         ) from e
     if not isinstance(data, dict):
         raise ValueError(f"member not found for --user {token!r}: empty response")
-    # Error payloads sometimes still JSON
     if data.get("error") and not (data.get("url_token") or data.get("id")):
         raise ValueError(f"member not found for --user {token!r}: {data.get('error')}")
     resolved = str(data.get("url_token") or token).strip() or token

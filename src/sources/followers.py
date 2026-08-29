@@ -5,6 +5,7 @@ from collections.abc import Iterator
 from http_client import ZhihuClient
 from models import NormalizedItem
 from sources.base import Source
+from zhihu_lists import fetch_person_list
 
 
 class FollowersSource(Source):
@@ -13,10 +14,15 @@ class FollowersSource(Source):
     def __init__(self, client: ZhihuClient, user_id: str):
         self.client = client
         self.source_id = str(user_id)
-        self._api = f"https://www.zhihu.com/api/v4/members/{self.source_id}/followers"
+        self._bound: dict = {}
 
     def total(self) -> int | None:
-        data = self.client.get_json(self._api, params={"offset": 0, "limit": 1})
+        try:
+            data = fetch_person_list(
+                self.client, self.source_id, "followers", offset=0, limit=1, _bound=self._bound
+            )
+        except FileNotFoundError:
+            return 0
         return int((data.get("paging") or {}).get("totals") or 0)
 
     def iter_items(self, offset: int = 0, limit: int = 20) -> Iterator[tuple[int, list[NormalizedItem]]]:
@@ -24,7 +30,17 @@ class FollowersSource(Source):
 
         current = offset
         while True:
-            data = self.client.get_json(self._api, params={"offset": current, "limit": limit})
+            try:
+                data = fetch_person_list(
+                    self.client,
+                    self.source_id,
+                    "followers",
+                    offset=current,
+                    limit=limit,
+                    _bound=self._bound,
+                )
+            except FileNotFoundError:
+                return
             rows = data.get("data") or []
             items: list[NormalizedItem] = []
             for row in rows:

@@ -1,4 +1,4 @@
-"""Shared offset paging over Zhihu member list endpoints."""
+"""Shared offset paging over Zhihu person/member list endpoints."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from http_client import ZhihuClient
 from models import NormalizedItem
 from parse import normalize_content
 from sources.base import Source
+from zhihu_lists import fetch_person_list
 
 log = logging.getLogger("zhvault.source")
 
@@ -52,7 +53,7 @@ def unwrap_column_row(row: Any) -> dict[str, Any] | None:
 
 
 class MemberPagedSource(Source):
-    """GET /api/v4/members/{id}/{path} → normalize_content rows."""
+    """Paginate a registered person list resource (people/members + include fallbacks)."""
 
     def __init__(
         self,
@@ -60,22 +61,34 @@ class MemberPagedSource(Source):
         user_id: str,
         *,
         name: str,
-        path: str,
+        resource: str,
         owner_kind: str,
         source_tag_prefix: str,
         unwrap: Callable[[Any], dict[str, Any] | None] | None = None,
+        path: str | None = None,
     ):
         self.client = client
         self.name = name
         self.source_id = str(user_id)
+        self.resource = (resource or path or name).strip().lower()
         self.owner_kind = owner_kind
         self.source_tag_prefix = source_tag_prefix
         self.unwrap = unwrap or unwrap_content_row
-        self._api = f"https://www.zhihu.com/api/v4/members/{self.source_id}/{path.lstrip('/')}"
+        self._bound: dict[str, Any] = {}
+
+    def _get(self, *, offset: int, limit: int) -> dict[str, Any]:
+        return fetch_person_list(
+            self.client,
+            self.source_id,
+            self.resource,
+            offset=offset,
+            limit=limit,
+            _bound=self._bound,
+        )
 
     def total(self) -> int | None:
         try:
-            data = self.client.get_json(self._api, params={"offset": 0, "limit": 1})
+            data = self._get(offset=0, limit=1)
         except FileNotFoundError:
             log.info("skip %s/%s: list 404 (private or missing)", self.name, self.source_id)
             return 0
@@ -85,7 +98,7 @@ class MemberPagedSource(Source):
         current = offset
         while True:
             try:
-                data = self.client.get_json(self._api, params={"offset": current, "limit": limit})
+                data = self._get(offset=current, limit=limit)
             except FileNotFoundError:
                 log.info(
                     "skip %s/%s at offset=%s: list 404 (private or missing endpoint)",

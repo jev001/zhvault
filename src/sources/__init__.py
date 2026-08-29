@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from http_client import ZhihuClient
-from mutate.endpoints import member_collections_url
 from sources.asked_question import AskedQuestionSource
 from sources.base import Source
 from sources.collection import CollectionSource
@@ -18,16 +17,27 @@ from sources.member_page import (
 )
 from sources.pin import PinSource
 from sources.vote import VoteSource
+from zhihu_lists import fetch_person_list
 
 
 def list_member_collection_ids(client: ZhihuClient, url_token: str, *, max_pages: int = 250) -> list[str]:
-    """Discover public collection ids for a member (GET only)."""
-    url = member_collections_url(url_token)
+    """Discover public collection ids for a member (GET only; people/members fallback)."""
     ids: list[str] = []
     offset = 0
     pages = 0
+    bound: dict = {}
     while pages < max_pages:
-        data = client.get_json(url, params={"offset": offset, "limit": 20})
+        try:
+            data = fetch_person_list(
+                client,
+                url_token,
+                "collections",
+                offset=offset,
+                limit=20,
+                _bound=bound,
+            )
+        except FileNotFoundError:
+            break
         rows = data.get("data") or []
         if not rows:
             break
@@ -50,7 +60,7 @@ def _member_answer(client: ZhihuClient, user_id: str) -> Source:
         client,
         user_id,
         name="answer",
-        path="answers",
+        resource="answers",
         owner_kind="answers",
         source_tag_prefix="answer",
         unwrap=unwrap_content_row,
@@ -62,7 +72,7 @@ def _member_article(client: ZhihuClient, user_id: str) -> Source:
         client,
         user_id,
         name="article",
-        path="articles",
+        resource="articles",
         owner_kind="articles",
         source_tag_prefix="article",
         unwrap=unwrap_content_row,
@@ -74,7 +84,7 @@ def _member_column(client: ZhihuClient, user_id: str) -> Source:
         client,
         user_id,
         name="column",
-        path="columns",
+        resource="columns",
         owner_kind="columns",
         source_tag_prefix="column",
         unwrap=unwrap_column_row,
@@ -86,7 +96,7 @@ def _member_zvideo(client: ZhihuClient, user_id: str) -> Source:
         client,
         user_id,
         name="zvideo",
-        path="zvideos",
+        resource="zvideos",
         owner_kind="zvideos",
         source_tag_prefix="zvideo",
         unwrap=unwrap_content_row,
@@ -98,7 +108,7 @@ def _member_activity(client: ZhihuClient, user_id: str) -> Source:
         client,
         user_id,
         name="activity",
-        path="activities",
+        resource="activities",
         owner_kind="activities",
         source_tag_prefix="activity",
         unwrap=unwrap_activity_row,

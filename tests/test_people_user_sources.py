@@ -107,7 +107,7 @@ def test_member_answer_source_paging():
         client,
         "example_token",
         name="answer",
-        path="answers",
+        resource="answers",
         owner_kind="answers",
         source_tag_prefix="answer",
     )
@@ -124,7 +124,7 @@ def test_member_paged_source_soft_404():
         client,
         "example_token",
         name="vote",
-        path="votes",
+        resource="votes",
         owner_kind="votes",
         source_tag_prefix="vote",
     )

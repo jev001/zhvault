@@ -72,7 +72,7 @@ Optional extras:
 Social / graph notes:
 
 - `--source all` does **not** include `following` / `followers`; run `--source social` explicitly.
-- `--user <url_token|people-URL|/token>` selects a member profile; verified via `GET /members/{token}`. `--source people` requires `--user` (docs: placeholders only). With `--user`, ignore `url.json` collections unless `--collection-id` is set; `all` discovers that member’s collections and adds answer/article/column/zvideo/activity. List 404s (private votes etc.) are soft-skipped.
+- `--user <url_token|people-URL|/token>` selects a member profile; verified via `GET /people|members/{token}`. `--source people` requires `--user` (docs: placeholders only). With `--user`, ignore `url.json` collections unless `--collection-id` is set; `all` discovers that member’s collections and adds answer/article/column/zvideo/activity. Profile list APIs use a registry (`zhihu_lists.py`): e.g. collections → `/people/.../collections`, columns → `/members/.../column-contributions`, with members/people fallbacks. List 404s soft-skip.
 - `graph rebuild` is **manual only** (not run after `backup` / `resume`); offline from stored items + membership + persisted `graph_edges`.
 - `graph query` is offline BFS over unified edges (derived + persisted); `--json` prints the query result dict (nodes + edges). `--backend auto|memory|kuzu` selects in-memory BFS vs synced Kuzu index.
 - `graph sync --backend kuzu` writes derived index to `meta/{engine}/graph_query/kuzu/` (offline; does not mutate `graph_edges`).
