@@ -1,0 +1,13 @@
+---
+description: Zhihu write-path / account mutate constraints
+globs: src/mutate/**/*.py
+alwaysApply: false
+---
+
+# zhvault mutate
+
+- Non-GET Zhihu HTTP (`request_json` POST/DELETE/PUT/PATCH) only from `src/mutate/`.
+- Live writes only via CLI `account apply` with `--i-understand-danger` and `--confirm APPLY`.
+- `account plan` is read/analyze only (no writes).
+- Do not auto-apply after `backup` / `resume`.
+- Prefer throttled client; continue on per-item failure with `failed[]` in summary.

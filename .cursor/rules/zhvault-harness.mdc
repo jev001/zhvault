@@ -1,0 +1,13 @@
+---
+description: Do not weaken zhvault harness green gate
+globs: HARNESS.md,docs/harness/**/*,.github/**/*,Makefile,ruff.toml,.pre-commit-config.yaml,src/tests/test_harness_invariants.py
+alwaysApply: false
+---
+
+# zhvault harness
+
+- Green gate is `make gate` + CI workflow `harness-gate`.
+- Do not gut `ruff.toml` select, delete invariant tests, or no-op the CI workflow to force green.
+- Do not instruct or use `--no-verify` to skip hooks.
+- Extending invariants is fine; removing them requires human approval.
+- See `docs/harness/anti-bypass.md`.

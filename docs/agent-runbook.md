@@ -1,6 +1,6 @@
 # Agent runbook
 
-Prerequisite: `make sync` (editable install; provides `zhvault` on PATH).
+Prerequisite: `make sync` (editable install; provides `zhvault` on PATH). Once per clone: `pre-commit install`.
 
 1. `zhvault status --json`
 2. If `cookie_present` is false: `zhvault auth set-cookie Cookies.json --json`
@@ -9,4 +9,5 @@ Prerequisite: `make sync` (editable install; provides `zhvault` on PATH).
 5. On interrupt: `zhvault resume --json`
 6. Read final `{"event":"summary",...}` for counts.
 
-Dev checks: `make test`, `make lint`.
+**Green gate (required before claiming done):** `make gate`  
+See [HARNESS.md](../HARNESS.md) and [harness/verify.md](./harness/verify.md). Do not bypass hooks or invent fake tests.

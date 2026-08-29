@@ -1,0 +1,12 @@
+---
+description: StorageEngine boundary for zhvault
+globs: src/storage/**/*.py
+alwaysApply: false
+---
+
+# zhvault storage
+
+- All durable backup/meta writes go through `StorageEngine` implementations only.
+- Do not add parallel index/sidecar files for state that belongs in the engine.
+- Derived artifacts (`graph.json`, vectors, kuzu) are explicit and documented — do not invent new ones casually.
+- Engines: `sqlite` (default), `json`, `rocksdb` (file-backed stub).

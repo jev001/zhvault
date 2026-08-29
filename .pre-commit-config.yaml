@@ -1,0 +1,16 @@
+# Local harness hooks — do not skip with --no-verify (see docs/harness/anti-bypass.md)
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.5
+    hooks:
+      - id: ruff
+        args: [src]
+
+  - repo: local
+    hooks:
+      - id: zhvault-pytest
+        name: zhvault pytest (harness gate)
+        entry: pytest
+        language: system
+        pass_filenames: false
+        always_run: true

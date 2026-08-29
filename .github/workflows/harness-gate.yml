@@ -1,0 +1,22 @@
+name: harness-gate
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  gate:
+    name: harness-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          pip install -e ".[dev,chroma,kuzu]"
+      - name: make gate
+        run: make gate

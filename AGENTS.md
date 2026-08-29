@@ -1,5 +1,7 @@
 # AGENTS.md — zhvault
 
+**Harness:** see [HARNESS.md](HARNESS.md). Required green check: `make gate` (ruff + full pytest). Anti-bypass: [docs/harness/anti-bypass.md](docs/harness/anti-bypass.md).
+
 ## Goal
 
 Backup Zhihu collections / pins / asked questions / followed questions / votes / social graph (following & followers) into local text + assets, with pluggable state engines and incremental resume.
@@ -9,7 +11,7 @@ Backup Zhihu collections / pins / asked questions / followed questions / votes /
 - **CLI / project name:** `zhvault` (console script). Deprecated alias: `zhihu-backup` only — no `python -m zhihu_backup`.
 - **Code:** lives under `src/` as the setuptools import root. Imports are top-level (`cli`, `storage`, `mutate`, …) — not `import zhvault` or `import zhihu_backup`.
 - **Tests:** `src/tests/` (same suite; excluded from the installed package).
-- **Dev:** `make sync` (editable install), `make test`, `make lint`, `make build`.
+- **Dev:** `make sync` (editable install + dev deps), then `pre-commit install` once; verify with **`make gate`**.
 
 ## Data layout
 
@@ -83,10 +85,11 @@ Social / graph notes:
 4. Zhihu-side follow/unfollow / collect/uncollect / question follow only via `account plan` (safe) + `account apply` with `--i-understand-danger` and `--confirm APPLY`. Never auto-write after backup.
 5. Do not extend `legacy/Main.py`; new work goes in `src/` (top-level modules under the import root). The legacy script is historical reference only.
 6. Design/plan docs: `docs/superpowers/specs/`, `docs/superpowers/plans/`.
+7. **Harness / green gate:** complete work only after `make gate` passes. Do not bypass with `--no-verify`, fake tests, gutted `ruff.toml`, or deleting harness/CI files. See [docs/harness/anti-bypass.md](docs/harness/anti-bypass.md).
 
 ## Verify
 
-- `make test` and `make lint` pass after changes
+- **`make gate`** (required) — `ruff check src` + full `pytest`
 - Same collection twice → second run mostly `skipped`
 - Interrupt then `resume` continues from checkpoint offset
 - One source HTTP 403 → `source_error` + continue other sources (`stats.source_errors`); try `--x-zse-96` if browser works
