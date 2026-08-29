@@ -1,7 +1,7 @@
 # Column Items → Article Detail Backup — Design
 
 **Date:** 2026-08-30  
-**Status:** Draft (awaiting user review)
+**Status:** Implemented (awaiting commit)
 
 ## Goal
 

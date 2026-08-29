@@ -80,3 +80,15 @@ def test_all_registered_resources_have_routes():
     ):
         assert key in LIST_ROUTES
         assert len(LIST_ROUTES[key]) >= 1
+
+
+def test_fetch_profile_prefers_members():
+    from zhihu_lists import fetch_profile
+
+    client = MagicMock()
+    client.get_json.return_value = {"url_token": "example_token", "name": "N"}
+    out = fetch_profile(client, "example_token")
+    assert out["url_token"] == "example_token"
+    assert client.get_json.call_count == 1
+    assert "/members/example_token" in client.get_json.call_args.args[0]
+    assert "/people/" not in client.get_json.call_args.args[0]

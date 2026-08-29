@@ -174,10 +174,10 @@ def fetch_person_list(
 
 
 def fetch_profile(client: ZhihuClient, token: str) -> dict[str, Any]:
-    """Resolve profile JSON via /people then /members."""
+    """Resolve profile JSON via /members then /people."""
     token = str(token).strip()
     last_err: Exception | None = None
-    for root in ("people", "members"):
+    for root in ("members", "people"):
         url = f"{API_V4}/{root}/{token}"
         try:
             data = client.get_json(url)
@@ -196,3 +196,74 @@ def fetch_profile(client: ZhihuClient, token: str) -> dict[str, Any]:
     if last_err:
         raise last_err
     raise FileNotFoundError(f"profile not found for token={token!r}")
+
+
+def column_key(column: dict[str, Any]) -> str:
+    """Prefer url_token (e.g. c_…) for /columns/{key}/items."""
+    token = str(column.get("url_token") or "").strip()
+    if token:
+        return token
+    return str(column.get("id") or "").strip()
+
+
+def column_items_url(column_key_s: str) -> str:
+    return f"{API_V4}/columns/{str(column_key_s).strip()}/items"
+
+
+def fetch_column_items(
+    client: ZhihuClient,
+    column_key_s: str,
+    *,
+    offset: int = 0,
+    limit: int = 20,
+) -> dict[str, Any]:
+    key = str(column_key_s).strip()
+    keys = [key]
+    # Single fallback: if key looks numeric-only, also try as-is only; if url_token failed, caller may retry id.
+    params = {"offset": offset, "limit": limit, "ws_qiangzhisafe": "0"}
+    last_404: Exception | None = None
+    for k in keys:
+        try:
+            data = client.get_json(column_items_url(k), params=params)
+        except FileNotFoundError as e:
+            last_404 = e
+            continue
+        return data if isinstance(data, dict) else {}
+    if last_404:
+        raise last_404
+    raise FileNotFoundError(f"column items not found for key={column_key_s!r}")
+
+
+def fetch_column_items_with_key_fallback(
+    client: ZhihuClient,
+    column: dict[str, Any],
+    *,
+    offset: int = 0,
+    limit: int = 20,
+) -> tuple[str, dict[str, Any]]:
+    """Try url_token then id once each on 404. Returns (winning_key, payload)."""
+    primary = column_key(column)
+    alt = str(column.get("id") or "").strip()
+    candidates = [primary]
+    if alt and alt != primary:
+        candidates.append(alt)
+    last_404: Exception | None = None
+    for k in candidates:
+        if not k:
+            continue
+        try:
+            data = fetch_column_items(client, k, offset=offset, limit=limit)
+            return k, data
+        except FileNotFoundError as e:
+            last_404 = e
+            log.info("column items 404 key=%s — try next", k)
+            continue
+    if last_404:
+        raise last_404
+    raise FileNotFoundError(f"column items not found for column={primary!r}")
+
+
+def fetch_article_detail(client: ZhihuClient, article_id: str) -> dict[str, Any]:
+    aid = str(article_id).strip()
+    data = client.get_json(f"{API_V4}/articles/{aid}")
+    return data if isinstance(data, dict) else {}

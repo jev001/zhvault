@@ -6,13 +6,13 @@ from http_client import ZhihuClient
 from sources.asked_question import AskedQuestionSource
 from sources.base import Source
 from sources.collection import CollectionSource
+from sources.column_expand import ColumnExpandSource
 from sources.followed_question import FollowedQuestionSource
 from sources.followers import FollowersSource
 from sources.following import FollowingSource
 from sources.member_page import (
     MemberPagedSource,
     unwrap_activity_row,
-    unwrap_column_row,
     unwrap_content_row,
 )
 from sources.pin import PinSource
@@ -80,15 +80,7 @@ def _member_article(client: ZhihuClient, user_id: str) -> Source:
 
 
 def _member_column(client: ZhihuClient, user_id: str) -> Source:
-    return MemberPagedSource(
-        client,
-        user_id,
-        name="column",
-        resource="columns",
-        owner_kind="columns",
-        source_tag_prefix="column",
-        unwrap=unwrap_column_row,
-    )
+    return ColumnExpandSource(client, user_id)
 
 
 def _member_zvideo(client: ZhihuClient, user_id: str) -> Source:
