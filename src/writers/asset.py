@@ -7,7 +7,6 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import requests
 
@@ -52,7 +51,7 @@ class AssetWriter:
         self,
         assets_root: Path,
         engine: StorageEngine,
-        session: Optional[requests.Session] = None,
+        session: requests.Session | None = None,
         *,
         workers: int = 8,
         asset_link: str = "wikilink",
@@ -67,15 +66,15 @@ class AssetWriter:
             mode = "wikilink"
         self.asset_link = mode
 
-    def ensure_local(self, url: str) -> Optional[Path]:
-        if not (url.startswith("http://") or url.startswith("https://")):
+    def ensure_local(self, url: str) -> Path | None:
+        if not (url.startswith(("http://", "https://"))):
             return None
         ref = self._resolve_one(url)
         return ref.local_path if ref else None
 
     def localize_markdown(self, md_body: str, md_dir: Path) -> tuple[str, list[str], list[AssetRef]]:
         urls = self._unique_http_urls(md_body)
-        resolved: dict[str, Optional[AssetRef]] = {}
+        resolved: dict[str, AssetRef | None] = {}
         to_fetch: list[str] = []
         for url in urls:
             cached = self._cached_ref(url)
@@ -86,7 +85,7 @@ class AssetWriter:
 
         if to_fetch:
             # Download in worker threads only; SQLite engine is not thread-safe.
-            downloads: dict[str, Optional[tuple[bytes, str, str, str]]] = {}
+            downloads: dict[str, tuple[bytes, str, str, str] | None] = {}
             # value: content, content_type, canonical_url, origin_url
             with ThreadPoolExecutor(max_workers=self.workers) as pool:
                 futures = {
@@ -165,7 +164,7 @@ class AssetWriter:
             body = f"![{alt}]({rel.replace(os.sep, '/')})"
         return comments + body
 
-    def _cached_ref(self, source_url: str) -> Optional[AssetRef]:
+    def _cached_ref(self, source_url: str) -> AssetRef | None:
         origin = normalize_asset_url(source_url)
         for key in (origin, source_url):
             cached = self.engine.get_asset_path(key)
@@ -184,7 +183,7 @@ class AssetWriter:
 
     def _download_prefer_origin(
         self, source_url: str
-    ) -> Optional[tuple[bytes, str, str, str]]:
+    ) -> tuple[bytes, str, str, str] | None:
         """Return (content, content_type, canonical_url, origin_url) or None."""
         origin = normalize_asset_url(source_url)
         if origin != source_url:
@@ -199,8 +198,8 @@ class AssetWriter:
         canonical = origin if origin != source_url else source_url
         return content, content_type, canonical, origin
 
-    def _resolve_one(self, source_url: str) -> Optional[AssetRef]:
-        if not (source_url.startswith("http://") or source_url.startswith("https://")):
+    def _resolve_one(self, source_url: str) -> AssetRef | None:
+        if not source_url.startswith(("http://", "https://")):
             return None
         cached = self._cached_ref(source_url)
         if cached:
@@ -243,7 +242,7 @@ class AssetWriter:
         return path
 
     @staticmethod
-    def _download(url: str) -> Optional[tuple[bytes, str]]:
+    def _download(url: str) -> tuple[bytes, str] | None:
         try:
             resp = requests.get(url, timeout=15)
             resp.raise_for_status()
@@ -258,7 +257,7 @@ class AssetWriter:
         out: list[str] = []
         for match in _IMG_RE.finditer(md_body):
             url = match.group("link")
-            if not (url.startswith("http://") or url.startswith("https://")):
+            if not (url.startswith(("http://", "https://"))):
                 continue
             if url in seen:
                 continue

@@ -3,9 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import StorageEngine
-from .sqlite_engine import SqliteEngine
 from .json_engine import JsonEngine
 from .rocks_engine import RocksEngine
+from .sqlite_engine import SqliteEngine
 
 
 def open_engine(name: str, meta_root: Path) -> StorageEngine:
@@ -22,9 +22,9 @@ def open_engine(name: str, meta_root: Path) -> StorageEngine:
 
 
 __all__ = [
-    "StorageEngine",
-    "SqliteEngine",
     "JsonEngine",
     "RocksEngine",
+    "SqliteEngine",
+    "StorageEngine",
     "open_engine",
 ]

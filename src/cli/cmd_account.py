@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Optional
 
 from auth import resolve_cookies
 from http_client import ZhihuClient
@@ -35,8 +34,8 @@ def cmd_account_plan(args: argparse.Namespace) -> int:
     inv_meta_path.mkdir(parents=True, exist_ok=True)
     inv_engine = open_engine(args.engine, inv_meta_path)
 
-    client: Optional[ZhihuClient] = None
-    actor_token: Optional[str] = None
+    client: ZhihuClient | None = None
+    actor_token: str | None = None
     try:
         _, _, meta = data_paths(data_dir)
         act_engine = open_engine(args.engine, meta)

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Optional
+from typing import Any
 
 import requests
-
 
 DEFAULT_HEADERS = {
     "accept": "*/*",
@@ -23,7 +22,7 @@ class ZhihuClient:
     def __init__(
         self,
         cookies: dict[str, str],
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         timeout: float = 15.0,
         min_interval: float = 0.8,
     ):
@@ -42,7 +41,7 @@ class ZhihuClient:
         if elapsed < self.min_interval:
             time.sleep(self.min_interval - elapsed)
 
-    def get_json(self, url: str, params: Optional[dict[str, Any]] = None, retries: int = 3) -> dict[str, Any]:
+    def get_json(self, url: str, params: dict[str, Any] | None = None, retries: int = 3) -> dict[str, Any]:
         return self.request_json("GET", url, params=params, retries=retries)
 
     def request_json(
@@ -50,14 +49,14 @@ class ZhihuClient:
         method: str,
         url: str,
         *,
-        params: Optional[dict[str, Any]] = None,
-        json_body: Optional[dict[str, Any]] = None,
-        data: Optional[Any] = None,
+        params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
+        data: Any | None = None,
         retries: int = 3,
     ) -> dict[str, Any]:
         """HTTP JSON helper. Write methods (POST/PUT/DELETE/PATCH) are for account apply only."""
         method_u = method.upper()
-        last_err: Optional[Exception] = None
+        last_err: Exception | None = None
         for attempt in range(retries):
             self._throttle()
             try:

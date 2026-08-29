@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from http_client import ZhihuClient
 from mutate import endpoints
-from mutate.plan import recompute_fingerprint, rebuild_plan_from_inventory
+from mutate.plan import rebuild_plan_from_inventory, recompute_fingerprint
 
 log = logging.getLogger("mutate.apply")
 
@@ -21,7 +21,7 @@ class ApplyGateError(ValueError):
 def check_apply_gates(
     *,
     i_understand_danger: bool,
-    confirm: Optional[str],
+    confirm: str | None,
 ) -> None:
     if not i_understand_danger:
         raise ApplyGateError("refusing apply: missing --i-understand-danger")
@@ -33,7 +33,7 @@ def verify_fingerprint(
     plan: dict[str, Any],
     *,
     open_engine_fn,
-    client: Optional[ZhihuClient] = None,
+    client: ZhihuClient | None = None,
     skip_rebuild: bool = False,
 ) -> None:
     """Ensure plan fingerprint still matches inventory (or embedded actions if skip_rebuild)."""
@@ -110,7 +110,7 @@ def apply_plan(
     client: ZhihuClient,
     *,
     i_understand_danger: bool,
-    confirm: Optional[str],
+    confirm: str | None,
     open_engine_fn,
     skip_rebuild: bool = False,
 ) -> dict[str, Any]:

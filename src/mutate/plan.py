@@ -6,7 +6,7 @@ import hashlib
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from http_client import ZhihuClient
 from models import ItemRecord
@@ -59,7 +59,7 @@ def fingerprint_inventory(
     *,
     mode: str,
     sources: list[str],
-    limit: Optional[int],
+    limit: int | None,
     map_collection: dict[str, str],
     following: list[str],
     followed: list[str],
@@ -78,7 +78,7 @@ def fingerprint_inventory(
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
-def fingerprint_actions(actions: list[dict[str, Any]], *, mode: str, sources: list[str], limit: Optional[int]) -> str:
+def fingerprint_actions(actions: list[dict[str, Any]], *, mode: str, sources: list[str], limit: int | None) -> str:
     """Legacy helper for tests; prefer fingerprint_inventory for plans."""
     payload = {
         "mode": mode,
@@ -90,7 +90,7 @@ def fingerprint_actions(actions: list[dict[str, Any]], *, mode: str, sources: li
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
-def _ego_from_engine(engine: StorageEngine) -> Optional[str]:
+def _ego_from_engine(engine: StorageEngine) -> str | None:
     edges = engine.list_graph_edges()
     from_counts: dict[str, int] = {}
     for e in edges:
@@ -142,7 +142,7 @@ def _followed_question_ids(engine: StorageEngine) -> list[str]:
     return ids
 
 
-def _content_type_and_id(rec: ItemRecord) -> Optional[tuple[str, str]]:
+def _content_type_and_id(rec: ItemRecord) -> tuple[str, str] | None:
     t = rec.item_type
     if t not in CONTENT_TYPES:
         return None
@@ -170,7 +170,7 @@ def _collection_items(engine: StorageEngine) -> list[tuple[str, str, str]]:
     return out
 
 
-def _fetch_collection_title(client: Optional[ZhihuClient], collection_id: str) -> str:
+def _fetch_collection_title(client: ZhihuClient | None, collection_id: str) -> str:
     if client is None:
         return ""
     try:
@@ -210,8 +210,8 @@ def resolve_collections(
     *,
     from_items: list[tuple[str, str, str]],
     map_collection: dict[str, str],
-    client: Optional[ZhihuClient],
-    actor_token: Optional[str],
+    client: ZhihuClient | None,
+    actor_token: str | None,
 ) -> tuple[list[dict[str, Any]], dict[str, str]]:
     """Return (collection_resolve rows, from_id -> to_id_or_create_marker)."""
     titles: dict[str, str] = {}
@@ -253,11 +253,11 @@ def build_plan(
     mode: str,
     sources: list[str],
     inventory_engine: StorageEngine,
-    map_collection: Optional[dict[str, str]] = None,
-    limit: Optional[int] = None,
-    client: Optional[ZhihuClient] = None,
-    actor_token: Optional[str] = None,
-    inventory_meta: Optional[dict[str, Any]] = None,
+    map_collection: dict[str, str] | None = None,
+    limit: int | None = None,
+    client: ZhihuClient | None = None,
+    actor_token: str | None = None,
+    inventory_meta: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if mode not in ("prune", "migrate"):
         raise ValueError("mode must be prune|migrate")
@@ -395,7 +395,7 @@ def load_plan(path: Path) -> dict[str, Any]:
     return data
 
 
-def rebuild_plan_from_inventory(plan: dict[str, Any], *, open_engine_fn, client: Optional[ZhihuClient] = None) -> dict[str, Any]:
+def rebuild_plan_from_inventory(plan: dict[str, Any], *, open_engine_fn, client: ZhihuClient | None = None) -> dict[str, Any]:
     """Rebuild plan from inventory paths stored in plan for fingerprint verification."""
     inv = plan.get("inventory") or {}
     mode = str(plan.get("mode"))

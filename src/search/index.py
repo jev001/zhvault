@@ -97,7 +97,7 @@ def build_index(
             skipped += 1
             continue
         vectors = embedder.embed(chunks)
-        for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
+        for i, (chunk, vector) in enumerate(zip(chunks, vectors, strict=True)):
             records.append(
                 VectorRecord(
                     id=f"{item.key}#{i}",

@@ -1,5 +1,6 @@
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from search.types import VectorHit, VectorRecord
 

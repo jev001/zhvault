@@ -5,13 +5,13 @@ from typing import Any
 
 import yaml
 
-from models import NormalizedItem, business_extra
 from graph import (
     _refresh_people_wikilinks,
     _section,
     _split_frontmatter,
     _strip_link_sections,
 )
+from models import NormalizedItem, business_extra
 
 
 class PersonWriter:

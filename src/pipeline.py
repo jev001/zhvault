@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 from models import Checkpoint, GraphEdge, ItemRecord, NormalizedItem, RunStats, business_extra
 from sources.base import Source
@@ -33,7 +34,7 @@ class Pipeline:
         *,
         full: bool = False,
         limit: int = 20,
-        on_event: Optional[Callable[[dict[str, Any]], None]] = None,
+        on_event: Callable[[dict[str, Any]], None] | None = None,
         session=None,
         asset_workers: int = 8,
         asset_link: str = "wikilink",
@@ -63,9 +64,7 @@ class Pipeline:
         new_updated = item.updated_at_str()
         if existing.content_updated_at and new_updated and existing.content_updated_at == new_updated:
             return True
-        if existing.content_updated_at and new_updated is None:
-            return True
-        return False
+        return bool(existing.content_updated_at and new_updated is None)
 
     def _upsert_follows_edge(self, item: NormalizedItem, source: Source) -> None:
         if source.name == "following":
@@ -182,9 +181,10 @@ class Pipeline:
         )
 
         try:
-            page_no = 0
-            for next_offset, page in source.iter_items(offset=start_offset, limit=self.limit):
-                page_no += 1
+            for page_no, (next_offset, page) in enumerate(
+                source.iter_items(offset=start_offset, limit=self.limit),
+                start=1,
+            ):
                 page_created = page_updated = page_skipped = page_failed = 0
                 log.info(
                     "page %s %s/%s size=%s -> offset %s",

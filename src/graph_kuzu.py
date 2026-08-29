@@ -3,7 +3,7 @@ from __future__ import annotations
 import shutil
 from collections import deque
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from graph import load_unified_edge_rows
 from storage.base import StorageEngine
@@ -123,7 +123,7 @@ def query_kuzu(
     *,
     start: str,
     depth: int,
-    kinds: Optional[set[str]] = None,
+    kinds: set[str] | None = None,
 ) -> dict[str, Any]:
     """BFS over Kuzu LINK edges; same return shape as query_graph."""
     kuzu = _require_kuzu()

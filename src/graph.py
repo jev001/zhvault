@@ -4,9 +4,9 @@ import json
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
-from models import GraphEdge, ItemRecord
+from models import ItemRecord
 from storage.base import StorageEngine
 
 PEOPLE_SCOPED = {
@@ -115,7 +115,7 @@ def _section(title: str, tokens: list[str]) -> str:
 
 
 def _refresh_people_wikilinks(
-    contents_root: Path, edges: list[dict[str, str]], ego: Optional[str]
+    contents_root: Path, edges: list[dict[str, str]], ego: str | None
 ) -> None:
     people_dir = Path(contents_root) / "people"
     people_dir.mkdir(parents=True, exist_ok=True)
@@ -196,7 +196,7 @@ def query_graph(
     *,
     start: str,
     depth: int = 1,
-    kinds: Optional[set[str]] = None,
+    kinds: set[str] | None = None,
 ) -> dict[str, Any]:
     """
     BFS along directed edges where edge['kind'] in kinds (or all if kinds is None).
@@ -243,7 +243,7 @@ def rebuild_graph(
     contents_root: Path,
     meta_dir: Path,
     *,
-    ego: Optional[str] = None,
+    ego: str | None = None,
     max_depth_requested: int = 1,
 ) -> dict[str, Any]:
     items = engine.list_items()

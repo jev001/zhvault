@@ -1,17 +1,18 @@
 from pathlib import Path
+
 from models import GraphEdge, ItemRecord
-from storage.sqlite_engine import SqliteEngine
 from storage.json_engine import JsonEngine
+from storage.sqlite_engine import SqliteEngine
 
 
 def _edge(**kw):
-    base = dict(
-        from_id="user:a",
-        to_id="user:b",
-        kind="follows",
-        origin="api",
-        seen_at="2026-01-01T00:00:00Z",
-    )
+    base = {
+        "from_id": "user:a",
+        "to_id": "user:b",
+        "kind": "follows",
+        "origin": "api",
+        "seen_at": "2026-01-01T00:00:00Z",
+    }
     base.update(kw)
     return GraphEdge(**base)
 

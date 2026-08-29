@@ -6,7 +6,7 @@ import logging
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from graph_kuzu import KuzuBackendError
 from http_client import ZhihuClient
@@ -23,7 +23,7 @@ def setup_logging(
     json_mode: bool,
     data_dir: Path,
     verbose: bool = False,
-    log_file: Optional[Path] = None,
+    log_file: Path | None = None,
 ) -> Path:
     logs_dir = Path(data_dir) / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
@@ -118,7 +118,7 @@ def log_event(ev: dict[str, Any], *, verbose: bool) -> None:
         log.debug("event %s", ev)
 
 
-def require_max_depth_mvp(n: int) -> Optional[str]:
+def require_max_depth_mvp(n: int) -> str | None:
     if int(n) != 1:
         return f"--max-depth={n} not implemented yet (only 1 supported)"
     return None
@@ -148,7 +148,7 @@ def kuzu_db_path(meta: Path, engine_name: str) -> Path:
     return engine_meta_dir(meta, engine_name) / "graph_query" / "kuzu"
 
 
-def resolve_graph_query_backend(explicit: Optional[str], db_path: Path) -> str:
+def resolve_graph_query_backend(explicit: str | None, db_path: Path) -> str:
     backend = explicit or "auto"
     if backend == "memory":
         return "memory"
@@ -175,7 +175,7 @@ class EmbedProviderError(RuntimeError):
     """Raised when --embed-provider cannot be resolved."""
 
 
-def resolve_embed_provider(explicit: Optional[str]) -> str:
+def resolve_embed_provider(explicit: str | None) -> str:
     if explicit:
         return explicit
     if sentence_transformers_importable():
@@ -197,7 +197,7 @@ def open_embedder_from_args(args) -> Any:
     )
 
 
-def resolve_vector_backend(explicit: Optional[str]) -> str:
+def resolve_vector_backend(explicit: str | None) -> str:
     if explicit:
         return explicit
     if chroma_importable():
@@ -209,7 +209,7 @@ def resolve_vector_backend(explicit: Optional[str]) -> str:
     )
 
 
-def kinds_from_args(kind: Optional[list[str]]) -> Optional[set[str]]:
+def kinds_from_args(kind: list[str] | None) -> set[str] | None:
     if kind is None:
         return None
     if "all" in kind:
@@ -230,7 +230,7 @@ def now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def resolve_ego(engine) -> Optional[str]:
+def resolve_ego(engine) -> str | None:
     cookies = engine.get_cookie()
     if not cookies:
         return None

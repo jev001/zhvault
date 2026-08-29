@@ -4,13 +4,13 @@ from models import NormalizedItem, business_extra
 
 
 def _item(**kwargs) -> NormalizedItem:
-    base = dict(
-        item_type="answer",
-        zhihu_id="456",
-        url="https://www.zhihu.com/answer/456",
-        title="t",
-        parent_id="123",
-    )
+    base = {
+        "item_type": "answer",
+        "zhihu_id": "456",
+        "url": "https://www.zhihu.com/answer/456",
+        "title": "t",
+        "parent_id": "123",
+    }
     base.update(kwargs)
     return NormalizedItem(**base)
 

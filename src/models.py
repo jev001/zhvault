@@ -1,23 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 
-def item_key(item_type: str, zhihu_id: str, parent_id: Optional[str] = None) -> str:
+def item_key(item_type: str, zhihu_id: str, parent_id: str | None = None) -> str:
     if parent_id:
         return f"{item_type}:{parent_id}:{zhihu_id}"
     return f"{item_type}:{zhihu_id}"
 
 
-def content_filename(item_type: str, zhihu_id: str, parent_id: Optional[str] = None) -> str:
+def content_filename(item_type: str, zhihu_id: str, parent_id: str | None = None) -> str:
     if parent_id:
         return f"{item_type}_{parent_id}_{zhihu_id}.md"
     return f"{item_type}_{zhihu_id}.md"
 
 
-def business_extra(item: "NormalizedItem") -> dict[str, str]:
+def business_extra(item: NormalizedItem) -> dict[str, str]:
     """Typed Zhihu IDs for meta.extra / frontmatter (migration-friendly)."""
     t = item.item_type
     zid = item.zhihu_id
@@ -53,13 +53,13 @@ class Checkpoint:
     source: str
     source_id: str
     offset: int = 0
-    updated_at: Optional[str] = None
+    updated_at: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Checkpoint":
+    def from_dict(cls, data: dict[str, Any]) -> Checkpoint:
         return cls(
             source=data["source"],
             source_id=data["source_id"],
@@ -75,10 +75,10 @@ class ItemRecord:
     zhihu_id: str
     url: str = ""
     title: str = ""
-    content_updated_at: Optional[str] = None
-    content_hash: Optional[str] = None
-    path: Optional[str] = None
-    last_seen_at: Optional[str] = None
+    content_updated_at: str | None = None
+    content_hash: str | None = None
+    path: str | None = None
+    last_seen_at: str | None = None
     orphaned: bool = False
     extra: dict[str, Any] = field(default_factory=dict)
 
@@ -86,7 +86,7 @@ class ItemRecord:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ItemRecord":
+    def from_dict(cls, data: dict[str, Any]) -> ItemRecord:
         return cls(
             key=data["key"],
             item_type=data["item_type"],
@@ -114,7 +114,7 @@ class GraphEdge:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "GraphEdge":
+    def from_dict(cls, data: dict[str, Any]) -> GraphEdge:
         return cls(
             from_id=str(data["from_id"]),
             to_id=str(data["to_id"]),
@@ -132,8 +132,8 @@ class NormalizedItem:
     title: str
     author: str = ""
     author_badge: str = ""
-    created: Optional[datetime] = None
-    modified: Optional[datetime] = None
+    created: datetime | None = None
+    modified: datetime | None = None
     upvote_num: int = 0
     comment_num: int = 0
     location: str = ""
@@ -141,14 +141,14 @@ class NormalizedItem:
     owner_kind: str = "collections"
     owner_id: str = "default"
     sources: list[str] = field(default_factory=list)
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
     asset_refs: list[dict[str, str]] = field(default_factory=list)
 
     @property
     def key(self) -> str:
         return item_key(self.item_type, self.zhihu_id, self.parent_id)
 
-    def updated_at_str(self) -> Optional[str]:
+    def updated_at_str(self) -> str | None:
         if not self.modified:
             return None
         return self.modified.strftime("%Y-%m-%d %H:%M:%S")
@@ -166,7 +166,7 @@ class RunStats:
     def to_dict(self) -> dict[str, int]:
         return asdict(self)
 
-    def merge(self, other: "RunStats") -> None:
+    def merge(self, other: RunStats) -> None:
         self.fetched += other.fetched
         self.created += other.created
         self.updated += other.updated

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterator, Optional
+from collections.abc import Iterator
 
 from http_client import ZhihuClient
 from models import NormalizedItem
@@ -16,7 +16,7 @@ class CollectionSource(Source):
         self.source_id = str(collection_id)
         self._api = f"https://www.zhihu.com/api/v4/collections/{self.source_id}/items"
 
-    def total(self) -> Optional[int]:
+    def total(self) -> int | None:
         data = self.client.get_json(self._api, params={"offset": 0, "limit": 1})
         return int((data.get("paging") or {}).get("totals") or 0)
 

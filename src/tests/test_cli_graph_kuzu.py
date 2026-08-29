@@ -1,8 +1,6 @@
 import json
 import sys
 
-import pytest
-
 from cli import main
 from models import GraphEdge
 from storage import open_engine

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import html2text
 
 from models import NormalizedItem
 
 
-def _dt(unix_ts: Any) -> Optional[datetime]:
+def _dt(unix_ts: Any) -> datetime | None:
     if not unix_ts:
         return None
     try:
@@ -34,7 +34,7 @@ def normalize_content(
     owner_kind: str,
     owner_id: str,
     source_tag: str,
-) -> Optional[NormalizedItem]:
+) -> NormalizedItem | None:
     if not content_data:
         return None
 
@@ -53,7 +53,7 @@ def normalize_content(
     url = content_data.get("url") or "#"
     title = "untitled"
     html = ""
-    parent_id: Optional[str] = None
+    parent_id: str | None = None
 
     if item_type == "answer":
         q = content_data.get("question") or {}
@@ -137,7 +137,7 @@ def normalize_member(
     *,
     center_id: str,
     source_name: str,  # following | followers
-) -> Optional[NormalizedItem]:
+) -> NormalizedItem | None:
     token = str(row.get("url_token") or row.get("id") or "")
     if not token:
         return None
@@ -162,7 +162,7 @@ def normalize_collection_item(
     item_json: dict[str, Any],
     *,
     collection_id: str,
-) -> Optional[NormalizedItem]:
+) -> NormalizedItem | None:
     content = item_json.get("content") or item_json
     return normalize_content(
         content,

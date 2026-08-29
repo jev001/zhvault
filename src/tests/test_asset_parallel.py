@@ -20,12 +20,10 @@ def test_localize_downloads_unique_urls(tmp_path: Path):
     aw = AssetWriter(tmp_path / "assets", engine, workers=4)
     md_dir = tmp_path / "contents" / "collections" / "c1"
     md_dir.mkdir(parents=True)
-    body = "\n".join(
-        [
-            "![a](https://cdn.example/a.png)",
-            "![b](https://cdn.example/b.png)",
-            "![c](https://cdn.example/c.png)",
-        ]
+    body = (
+        "![a](https://cdn.example/a.png)\n"
+        "![b](https://cdn.example/b.png)\n"
+        "![c](https://cdn.example/c.png)"
     )
     with patch("writers.asset.requests.get", side_effect=lambda *a, **k: _resp()) as get:
         out, localized, _refs = aw.localize_markdown(body, md_dir)

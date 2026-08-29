@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Iterator, Optional
+from collections.abc import Iterator
 
 from models import NormalizedItem
 
@@ -11,7 +11,7 @@ class Source(ABC):
     source_id: str
 
     @abstractmethod
-    def total(self) -> Optional[int]:
+    def total(self) -> int | None:
         ...
 
     @abstractmethod

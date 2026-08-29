@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from models import Checkpoint, GraphEdge, ItemRecord
 
@@ -16,7 +16,7 @@ class StorageEngine(ABC):
         ...
 
     @abstractmethod
-    def get_checkpoint(self, source: str, source_id: str) -> Optional[Checkpoint]:
+    def get_checkpoint(self, source: str, source_id: str) -> Checkpoint | None:
         ...
 
     @abstractmethod
@@ -24,7 +24,7 @@ class StorageEngine(ABC):
         ...
 
     @abstractmethod
-    def get_item(self, key: str) -> Optional[ItemRecord]:
+    def get_item(self, key: str) -> ItemRecord | None:
         ...
 
     @abstractmethod
@@ -36,7 +36,7 @@ class StorageEngine(ABC):
         ...
 
     @abstractmethod
-    def get_asset_path(self, url: str) -> Optional[str]:
+    def get_asset_path(self, url: str) -> str | None:
         ...
 
     @abstractmethod
@@ -45,8 +45,8 @@ class StorageEngine(ABC):
         url: str,
         path: str,
         *,
-        source_url: Optional[str] = None,
-        origin_url: Optional[str] = None,
+        source_url: str | None = None,
+        origin_url: str | None = None,
     ) -> None:
         ...
 

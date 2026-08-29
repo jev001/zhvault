@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator, Optional
 
 from models import NormalizedItem, RunStats
 from pipeline import Pipeline
@@ -15,7 +15,7 @@ class _AuthFailSource(Source):
     def __init__(self):
         self.source_id = "u1"
 
-    def total(self) -> Optional[int]:
+    def total(self) -> int | None:
         return None
 
     def iter_items(self, offset: int = 0, limit: int = 20) -> Iterator[tuple[int, list[NormalizedItem]]]:
@@ -29,7 +29,7 @@ class _OkEmptySource(Source):
         self.source_id = "u1"
         self.called = False
 
-    def total(self) -> Optional[int]:
+    def total(self) -> int | None:
         return 0
 
     def iter_items(self, offset: int = 0, limit: int = 20) -> Iterator[tuple[int, list[NormalizedItem]]]:

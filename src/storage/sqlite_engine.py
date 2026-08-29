@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from models import Checkpoint, GraphEdge, ItemRecord
+
 from .base import StorageEngine
 
 
@@ -102,7 +103,7 @@ class SqliteEngine(StorageEngine):
         )
         self._conn.commit()
 
-    def get_checkpoint(self, source: str, source_id: str) -> Optional[Checkpoint]:
+    def get_checkpoint(self, source: str, source_id: str) -> Checkpoint | None:
         row = self._conn.execute(
             "SELECT source, source_id, offset, updated_at FROM checkpoints WHERE source = ? AND source_id = ?",
             (source, source_id),
@@ -129,7 +130,7 @@ class SqliteEngine(StorageEngine):
         )
         self._conn.commit()
 
-    def get_item(self, key: str) -> Optional[ItemRecord]:
+    def get_item(self, key: str) -> ItemRecord | None:
         row = self._conn.execute("SELECT * FROM items WHERE key = ?", (key,)).fetchone()
         if not row:
             return None
@@ -193,7 +194,7 @@ class SqliteEngine(StorageEngine):
         )
         self._conn.commit()
 
-    def get_asset_path(self, url: str) -> Optional[str]:
+    def get_asset_path(self, url: str) -> str | None:
         row = self._conn.execute("SELECT path FROM assets WHERE url = ?", (url,)).fetchone()
         return row["path"] if row else None
 
@@ -215,8 +216,8 @@ class SqliteEngine(StorageEngine):
         url: str,
         path: str,
         *,
-        source_url: Optional[str] = None,
-        origin_url: Optional[str] = None,
+        source_url: str | None = None,
+        origin_url: str | None = None,
     ) -> None:
         self._conn.execute(
             """

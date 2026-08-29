@@ -1,7 +1,8 @@
 import hashlib
 import os
 import struct
-from typing import Protocol, Sequence
+from collections.abc import Sequence
+from typing import Protocol
 
 DEFAULT_LOCAL_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 

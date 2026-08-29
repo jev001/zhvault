@@ -41,6 +41,7 @@ markers = [
 ]
 
 [tool.ruff]
+# Rule selection lives in ./ruff.toml (single source of truth).
 line-length = 100
 target-version = "py310"
 src = ["src"]

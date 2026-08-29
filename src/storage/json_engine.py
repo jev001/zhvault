@@ -4,9 +4,10 @@ import json
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from models import Checkpoint, GraphEdge, ItemRecord
+
 from .base import StorageEngine
 
 
@@ -36,7 +37,7 @@ class JsonEngine(StorageEngine):
     def _load(self) -> dict[str, Any]:
         if not self.path.exists():
             return self._default()
-        with open(self.path, "r", encoding="utf-8") as f:
+        with open(self.path, encoding="utf-8") as f:
             data = json.load(f)
         base = self._default()
         base.update(data or {})
@@ -60,7 +61,7 @@ class JsonEngine(StorageEngine):
             self._data["cookie"] = dict(cookies)
             self._save()
 
-    def get_checkpoint(self, source: str, source_id: str) -> Optional[Checkpoint]:
+    def get_checkpoint(self, source: str, source_id: str) -> Checkpoint | None:
         with self._lock:
             raw = (self._data.get("checkpoints") or {}).get(self._cp_key(source, source_id))
             if not raw:
@@ -74,7 +75,7 @@ class JsonEngine(StorageEngine):
             )
             self._save()
 
-    def get_item(self, key: str) -> Optional[ItemRecord]:
+    def get_item(self, key: str) -> ItemRecord | None:
         with self._lock:
             raw = (self._data.get("items") or {}).get(key)
             if not raw:
@@ -94,7 +95,7 @@ class JsonEngine(StorageEngine):
                 mem.append(entry)
                 self._save()
 
-    def get_asset_path(self, url: str) -> Optional[str]:
+    def get_asset_path(self, url: str) -> str | None:
         with self._lock:
             raw = (self._data.get("assets") or {}).get(url)
             if raw is None:
@@ -120,8 +121,8 @@ class JsonEngine(StorageEngine):
         url: str,
         path: str,
         *,
-        source_url: Optional[str] = None,
-        origin_url: Optional[str] = None,
+        source_url: str | None = None,
+        origin_url: str | None = None,
     ) -> None:
         with self._lock:
             assets = self._data.setdefault("assets", {})
