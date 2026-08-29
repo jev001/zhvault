@@ -19,6 +19,7 @@ def _item(modified: datetime | None = None) -> NormalizedItem:
         owner_kind="collections",
         owner_id="c1",
         markdown_body="body",
+        parent_id="99",
     )
 
 
@@ -46,8 +47,17 @@ def test_content_filename_has_no_chinese(tmp_path: Path):
     item = _item()
     item.title = "中文标题"
     path = ContentWriter(tmp_path / "contents").path_for(item)
-    assert path.name == "answer_42.md"
+    assert path.name == "answer_99_42.md"
+    assert item.key == "answer:99:42"
     assert "中文" not in str(path)
+
+
+def test_content_filename_without_parent(tmp_path: Path):
+    item = _item()
+    item.parent_id = None
+    path = ContentWriter(tmp_path / "contents").path_for(item)
+    assert path.name == "answer_42.md"
+    assert item.key == "answer:42"
 
 
 def test_json_engine_roundtrip(tmp_path: Path):

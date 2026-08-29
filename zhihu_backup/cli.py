@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
@@ -18,13 +19,40 @@ from zhihu_backup.pipeline import Pipeline
 from zhihu_backup.sources import build_sources
 from zhihu_backup.storage import open_engine
 
+log = logging.getLogger("zhihu_backup")
 
-def _setup_logging(json_mode: bool) -> None:
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(levelname)s %(message)s",
-        stream=sys.stderr if json_mode else sys.stdout,
-    )
+
+def _setup_logging(
+    *,
+    json_mode: bool,
+    data_dir: Path,
+    verbose: bool = False,
+    log_file: Optional[Path] = None,
+) -> Path:
+    logs_dir = Path(data_dir) / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    if log_file is None:
+        log_file = logs_dir / f"backup_{datetime.now().strftime('%Y%m%d')}.log"
+
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.setLevel(logging.DEBUG if verbose else logging.INFO)
+
+    fmt_console = logging.Formatter("%(levelname)s %(message)s")
+    fmt_file = logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+
+    console = logging.StreamHandler(sys.stderr if json_mode else sys.stdout)
+    console.setLevel(logging.DEBUG if verbose else logging.INFO)
+    console.setFormatter(fmt_console)
+    root.addHandler(console)
+
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(fmt_file)
+    root.addHandler(file_handler)
+
+    log.info("log file: %s", log_file)
+    return log_file
 
 
 def _data_paths(data_dir: Path) -> tuple[Path, Path, Path]:
@@ -34,6 +62,7 @@ def _data_paths(data_dir: Path) -> tuple[Path, Path, Path]:
     contents.mkdir(parents=True, exist_ok=True)
     assets.mkdir(parents=True, exist_ok=True)
     meta.mkdir(parents=True, exist_ok=True)
+    (data_dir / "logs").mkdir(parents=True, exist_ok=True)
     return contents, assets, meta
 
 
@@ -42,12 +71,56 @@ def _json_print(obj: Any) -> None:
     sys.stdout.flush()
 
 
+def _log_event(ev: dict[str, Any], *, verbose: bool) -> None:
+    event = ev.get("event")
+    if event == "source_start":
+        log.info(
+            "source start %s/%s offset=%s",
+            ev.get("source"),
+            ev.get("source_id"),
+            ev.get("offset"),
+        )
+    elif event == "checkpoint":
+        log.info(
+            "checkpoint %s/%s offset=%s",
+            ev.get("source"),
+            ev.get("source_id"),
+            ev.get("offset"),
+        )
+    elif event == "source_done":
+        stats = ev.get("stats") or {}
+        log.info(
+            "source done %s/%s fetched=%s created=%s updated=%s skipped=%s failed=%s",
+            ev.get("source"),
+            ev.get("source_id"),
+            stats.get("fetched", 0),
+            stats.get("created", 0),
+            stats.get("updated", 0),
+            stats.get("skipped", 0),
+            stats.get("failed", 0),
+        )
+    elif event == "item":
+        action = ev.get("action")
+        key = ev.get("key")
+        if action == "failed":
+            log.error("item %s %s", action, key)
+        elif action in ("created", "updated"):
+            log.info("item %s %s", action, key)
+        elif verbose:
+            log.debug("item %s %s", action, key)
+    elif event == "auth_error":
+        log.error("auth error on %s: %s", ev.get("source"), ev.get("error"))
+    elif verbose:
+        log.debug("event %s", ev)
+
+
 def cmd_auth(args: argparse.Namespace) -> int:
     _, _, meta = _data_paths(Path(args.data_dir))
     engine = open_engine(args.engine, meta)
     try:
         cookies = set_cookie_from_file(engine, Path(args.cookie_file))
         result = {"ok": True, "keys": sorted(cookies.keys()), "engine": args.engine}
+        log.info("cookie saved (%s keys) via %s", len(cookies), args.engine)
         if args.json:
             _json_print(result)
         else:
@@ -79,13 +152,13 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
     def on_event(ev: dict[str, Any]) -> None:
         if args.json:
             _json_print(ev)
-        elif args.verbose:
-            logging.getLogger("zhihu_backup").info("%s", ev)
+        _log_event(ev, verbose=bool(args.verbose))
 
     try:
         cookies = resolve_cookies(engine, Path(args.cookie_file) if args.cookie_file else None)
         if not cookies:
             msg = {"ok": False, "error": "no cookie; run: zhihu-backup auth set-cookie Cookies.json"}
+            log.error("%s", msg["error"])
             if args.json:
                 _json_print(msg)
             else:
@@ -106,12 +179,21 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
                 "ok": False,
                 "error": "no sources resolved; check --source / url.json collections / login",
             }
+            log.error("%s", msg["error"])
             if args.json:
                 _json_print(msg)
             else:
                 print(msg["error"], file=sys.stderr)
             return 2
 
+        log.info(
+            "backup start engine=%s source=%s full=%s resume=%s sources=%s",
+            args.engine,
+            args.source,
+            bool(args.full),
+            resume,
+            len(sources),
+        )
         pipeline = Pipeline(
             engine,
             contents,
@@ -120,6 +202,7 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
             limit=args.limit,
             on_event=on_event,
             session=client.session,
+            asset_workers=int(args.asset_workers),
         )
         stats = pipeline.run(sources, resume=resume)
         summary = {
@@ -131,6 +214,14 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
             "stats": stats.to_dict(),
             "data_dir": str(data_dir),
         }
+        log.info(
+            "backup done fetched=%s created=%s updated=%s skipped=%s failed=%s",
+            stats.fetched,
+            stats.created,
+            stats.updated,
+            stats.skipped,
+            stats.failed,
+        )
         if args.json:
             _json_print({"event": "summary", **summary})
         else:
@@ -138,6 +229,7 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
         return 0 if stats.failed == 0 else 1
     except PermissionError as e:
         payload = {"ok": False, "error": str(e), "code": "auth"}
+        log.error("auth failed: %s", e)
         if args.json:
             _json_print(payload)
         else:
@@ -160,7 +252,8 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--data-dir", default="data", help="root data directory")
     common.add_argument("--engine", default="sqlite", choices=["sqlite", "json", "rocksdb", "rocks"])
     common.add_argument("--json", action="store_true", help="machine-readable stdout")
-    common.add_argument("--verbose", action="store_true")
+    common.add_argument("--verbose", action="store_true", help="debug console + per-item skip logs")
+    common.add_argument("--log-file", default=None, help="override log path (default data/logs/backup_YYYYMMDD.log)")
 
     p = argparse.ArgumentParser(prog="zhihu-backup", description="Zhihu backup CLI", parents=[common])
     sub = p.add_subparsers(dest="command", required=True)
@@ -182,6 +275,12 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--url-config", default="url.json")
         sp.add_argument("--collection-id", action="append", default=[])
         sp.add_argument("--x-zse-96", default=None, help="optional x-zse-96 header override")
+        sp.add_argument(
+            "--asset-workers",
+            type=int,
+            default=8,
+            help="parallel image download workers (default 8; use 1 for serial)",
+        )
 
     b = sub.add_parser("backup", help="incremental backup (resumes checkpoints)", parents=[common])
     add_backup_flags(b)
@@ -197,7 +296,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[list[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    _setup_logging(bool(getattr(args, "json", False)))
+    _setup_logging(
+        json_mode=bool(getattr(args, "json", False)),
+        data_dir=Path(getattr(args, "data_dir", "data")),
+        verbose=bool(getattr(args, "verbose", False)),
+        log_file=Path(args.log_file) if getattr(args, "log_file", None) else None,
+    )
     return int(args.func(args))
 
 

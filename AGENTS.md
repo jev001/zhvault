@@ -8,12 +8,13 @@ Backup Zhihu collections / pins / asked questions / followed questions / votes i
 
 ```
 data/
-  contents/{collections|pins|asked_questions|followed_questions|votes}/{owner_id}/{type}_{zhihu_id}.md
+  contents/{collections|pins|asked_questions|followed_questions|votes}/{owner_id}/{type}_{parent?}_{zhihu_id}.md
   assets/{sha16}{ext}
   meta/{sqlite|json|rocksdb}/...
 ```
 
-- Filenames: `type_{zhihu_id}` only (no Chinese titles in paths)
+- Filenames: `{type}_{parent_id}_{zhihu_id}.md` when parent exists (e.g. `answer_{qid}_{aid}`), else `{type}_{zhihu_id}.md` (no Chinese)
+- Meta key: `{type}:{parent_id}:{zhihu_id}` or `{type}:{zhihu_id}`
 - State engines: `--engine sqlite|json|rocksdb` (rocksdb is a file-backed stub in MVP)
 
 ## Commands
@@ -25,7 +26,7 @@ python -m zhihu_backup backup --source collection --json
 python -m zhihu_backup resume --json
 ```
 
-Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`, `--x-zse-96`, `--json`.
+Useful flags: `--data-dir`, `--engine`, `--source`, `--full`, `--collection-id`, `--x-zse-96`, `--asset-workers`, `--json`.
 
 `--json`: events/summary on stdout; logs on stderr. Agent flow: `status --json` → auth if needed → `backup --json` → read `event=summary`.
 

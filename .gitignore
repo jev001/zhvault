@@ -3,6 +3,7 @@ assets/*
 data/contents/**
 data/assets/**
 data/meta/**
+data/logs/**
 !data/**/.gitkeep
 Cookies.json
 .venv/

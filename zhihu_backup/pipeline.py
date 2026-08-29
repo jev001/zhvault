@@ -34,10 +34,11 @@ class Pipeline:
         limit: int = 20,
         on_event: Optional[Callable[[dict[str, Any]], None]] = None,
         session=None,
+        asset_workers: int = 8,
     ):
         self.engine = engine
         self.contents = ContentWriter(contents_root)
-        self.assets = AssetWriter(assets_root, engine, session=session)
+        self.assets = AssetWriter(assets_root, engine, session=session, workers=asset_workers)
         self.full = full
         self.limit = limit
         self.on_event = on_event
@@ -73,6 +74,9 @@ class Pipeline:
 
             body = self.assets.localize_markdown(item.markdown_body, self.contents.path_for(item).parent)
             path = self.contents.write(item, body)
+            extra = {}
+            if item.parent_id:
+                extra["parent_id"] = item.parent_id
             record = ItemRecord(
                 key=item.key,
                 item_type=item.item_type,
@@ -84,6 +88,7 @@ class Pipeline:
                 path=str(path),
                 last_seen_at=_now(),
                 orphaned=False,
+                extra=extra,
             )
             self.engine.upsert_item(record)
             self.engine.link_membership(item.key, item.owner_kind, item.owner_id)
@@ -112,18 +117,33 @@ class Pipeline:
         )
 
         try:
+            page_no = 0
             for next_offset, page in source.iter_items(offset=start_offset, limit=self.limit):
+                page_no += 1
+                page_created = page_updated = page_skipped = page_failed = 0
+                log.info(
+                    "page %s %s/%s size=%s -> offset %s",
+                    page_no,
+                    source.name,
+                    source.source_id,
+                    len(page),
+                    next_offset,
+                )
                 for item in page:
                     stats.fetched += 1
                     action = self.process_item(item, source=source)
                     if action == "created":
                         stats.created += 1
+                        page_created += 1
                     elif action == "updated":
                         stats.updated += 1
+                        page_updated += 1
                     elif action == "skipped":
                         stats.skipped += 1
+                        page_skipped += 1
                     else:
                         stats.failed += 1
+                        page_failed += 1
                     self._emit(
                         {
                             "event": "item",
@@ -142,6 +162,14 @@ class Pipeline:
                         updated_at=_now(),
                     )
                 )
+                log.info(
+                    "page %s done created=%s updated=%s skipped=%s failed=%s",
+                    page_no,
+                    page_created,
+                    page_updated,
+                    page_skipped,
+                    page_failed,
+                )
                 self._emit(
                     {
                         "event": "checkpoint",
@@ -153,6 +181,7 @@ class Pipeline:
                 if not page:
                     break
         except PermissionError as e:
+            log.error("auth error %s/%s: %s", source.name, source.source_id, e)
             self._emit({"event": "auth_error", "error": str(e), "source": source.name})
             raise
 
@@ -168,6 +197,15 @@ class Pipeline:
 
     def run(self, sources: list[Source], *, resume: bool = True) -> RunStats:
         total = RunStats()
+        log.info("pipeline run sources=%s resume=%s full=%s", len(sources), resume, self.full)
         for source in sources:
             total.merge(self.run_source(source, resume=resume))
+        log.info(
+            "pipeline done fetched=%s created=%s updated=%s skipped=%s failed=%s",
+            total.fetched,
+            total.created,
+            total.updated,
+            total.skipped,
+            total.failed,
+        )
         return total

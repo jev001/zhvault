@@ -8,7 +8,7 @@ from zhihu_backup.pipeline import Pipeline
 from zhihu_backup.storage import open_engine
 
 
-def _item(zhihu_id: str, modified: datetime) -> NormalizedItem:
+def _item(zhihu_id: str, modified: datetime, parent_id: str | None = "99") -> NormalizedItem:
     return NormalizedItem(
         item_type="answer",
         zhihu_id=zhihu_id,
@@ -19,6 +19,7 @@ def _item(zhihu_id: str, modified: datetime) -> NormalizedItem:
         owner_kind="collections",
         owner_id="c1",
         sources=["collection:c1"],
+        parent_id=parent_id,
     )
 
 
@@ -61,8 +62,9 @@ def test_content_writer_filename_no_chinese(tmp_path: Path) -> None:
     from zhihu_backup.writers.content import ContentWriter
 
     writer = ContentWriter(tmp_path / "contents")
-    item = _item("99", datetime(2024, 1, 1))
+    item = _item("99", datetime(2024, 1, 1), parent_id="123")
     item.title = "中文标题不应进路径"
     path = writer.write(item, "body")
-    assert path.name == "answer_99.md"
+    assert path.name == "answer_123_99.md"
+    assert item.key == "answer:123:99"
     assert "中文" not in str(path)
