@@ -7,7 +7,7 @@ import logging
 import re
 from typing import Any
 
-from http_client import ZhihuClient
+from http_client import ZHUANLAN_DOCUMENT_HEADERS, ZhihuClient
 
 log = logging.getLogger("zhvault.article")
 
@@ -148,7 +148,7 @@ def fetch_article_detail(client: ZhihuClient, article_id: str) -> dict[str, Any]
         )
 
     try:
-        html = client.get_text(page_url, headers={"Referer": "https://zhuanlan.zhihu.com/"})
+        html = client.get_text(page_url, headers=dict(ZHUANLAN_DOCUMENT_HEADERS))
     except Exception as e:
         log.info("zhuanlan HTML failed id=%s: %s", aid, e)
         if isinstance(data, dict):

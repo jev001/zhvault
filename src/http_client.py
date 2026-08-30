@@ -10,14 +10,33 @@ log = logging.getLogger("zhvault.http")
 
 DEFAULT_HEADERS = {
     "accept": "*/*",
-    "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+    "accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
     "user-agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
+        "Chrome/152.0.0.0 Safari/537.36"
     ),
     "x-requested-with": "fetch",
     "x-zse-93": "101_3_3.0",
+}
+
+# Browser document navigation to zhuanlan (no x-zse-96 / x-requested-with).
+# Setting a header to None makes requests omit the session default.
+ZHUANLAN_DOCUMENT_HEADERS: dict[str, str | None] = {
+    "accept": (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "image/avif,image/webp,image/apng,*/*;q=0.8"
+    ),
+    "cache-control": "no-cache",
+    "pragma": "no-cache",
+    "upgrade-insecure-requests": "1",
+    "sec-fetch-dest": "document",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-site": "none",
+    "sec-fetch-user": "?1",
+    "referer": "https://zhuanlan.zhihu.com/",
+    "x-requested-with": None,
+    "x-zse-93": None,
 }
 
 
@@ -60,7 +79,7 @@ class ZhihuClient:
         url: str,
         *,
         params: dict[str, Any] | None = None,
-        headers: dict[str, str] | None = None,
+        headers: dict[str, Any] | None = None,
         retries: int = 3,
     ) -> str:
         """GET raw text (HTML pages)."""
@@ -78,6 +97,10 @@ class ZhihuClient:
                 )
                 self._last_request_at = time.monotonic()
                 if resp.status_code in (401, 403):
+                    preview = (resp.text or "").strip().replace("\n", " ")[:240]
+                    log.info("auth failed HTTP %s for GET %s", resp.status_code, url)
+                    if preview:
+                        log.debug("auth response body: %s", preview)
                     raise PermissionError(f"auth failed HTTP {resp.status_code} for GET {url}")
                 if resp.status_code == 404:
                     raise FileNotFoundError(f"HTTP 404 for GET {url}")
@@ -126,12 +149,18 @@ class ZhihuClient:
                 )
                 self._last_request_at = time.monotonic()
                 if resp.status_code in (401, 403):
-                    log.error(
+                    preview = (resp.text or "").strip().replace("\n", " ")[:240]
+                    # GET article/list 403 is often WAF; soft-skip callers use INFO not ERROR spam.
+                    level = logging.ERROR if method_u != "GET" else logging.INFO
+                    log.log(
+                        level,
                         "auth failed HTTP %s for %s %s",
                         resp.status_code,
                         method_u,
                         url,
                     )
+                    if preview:
+                        log.debug("auth response body: %s", preview)
                     raise PermissionError(f"auth failed HTTP {resp.status_code} for {method_u} {url}")
                 if resp.status_code == 404:
                     log.info("HTTP 404 %s %s (not found / private list)", method_u, url)

@@ -90,7 +90,11 @@ def _backup_options(
         "--user",
         help="target url_token or people URL (default: logged-in /me for member sources)",
     ),
-    x_zse_96: str | None = typer.Option(None, "--x-zse-96", help="optional x-zse-96 header override"),
+    x_zse_96: str | None = typer.Option(
+        None,
+        "--x-zse-96",
+        help="full browser x-zse-96 token (usually 2.0_…); not a placeholder like 1",
+    ),
     asset_workers: int = typer.Option(
         8,
         "--asset-workers",
@@ -209,7 +213,11 @@ def backup(
         "--user",
         help="target url_token or people URL (default: logged-in /me for member sources)",
     ),
-    x_zse_96: str | None = typer.Option(None, "--x-zse-96", help="optional x-zse-96 header override"),
+    x_zse_96: str | None = typer.Option(
+        None,
+        "--x-zse-96",
+        help="full browser x-zse-96 token (usually 2.0_…); not a placeholder like 1",
+    ),
     asset_workers: int = typer.Option(8, "--asset-workers"),
     asset_link: AssetLinkStyle = typer.Option("wikilink", "--asset-link"),
     max_depth: int = typer.Option(1, "--max-depth", help="social crawl depth (MVP: only 1 supported)"),
@@ -255,7 +263,11 @@ def resume(
         "--user",
         help="target url_token or people URL (default: logged-in /me for member sources)",
     ),
-    x_zse_96: str | None = typer.Option(None, "--x-zse-96", help="optional x-zse-96 header override"),
+    x_zse_96: str | None = typer.Option(
+        None,
+        "--x-zse-96",
+        help="full browser x-zse-96 token (usually 2.0_…); not a placeholder like 1",
+    ),
     asset_workers: int = typer.Option(8, "--asset-workers"),
     asset_link: AssetLinkStyle = typer.Option("wikilink", "--asset-link"),
     max_depth: int = typer.Option(1, "--max-depth", help="social crawl depth (MVP: only 1 supported)"),

@@ -47,6 +47,9 @@ def test_fetch_article_detail_uses_referer_then_html_fallback():
     assert kwargs.get("headers", {}).get("Referer") == "https://zhuanlan.zhihu.com/p/44839349"
     client.get_text.assert_called_once()
     assert "zhuanlan.zhihu.com/p/44839349" in client.get_text.call_args.args[0]
+    html_headers = client.get_text.call_args.kwargs.get("headers") or {}
+    assert html_headers.get("sec-fetch-dest") == "document"
+    assert html_headers.get("x-requested-with") is None
 
 
 def test_fetch_article_detail_api_ok_skips_html():

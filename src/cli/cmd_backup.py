@@ -17,6 +17,7 @@ from http_client import ZhihuClient
 from pipeline import Pipeline
 from sources import build_sources
 from storage import open_engine
+from zse96 import normalize_x_zse_96
 
 from .common import data_paths, json_print, log, log_event, require_max_depth_mvp
 
@@ -89,8 +90,21 @@ def _run_backup(args: argparse.Namespace, *, resume: bool) -> int:
             return 2
 
         headers: dict[str, str] = {}
-        if args.x_zse_96:
-            headers["x-zse-96"] = args.x_zse_96
+        try:
+            zse = normalize_x_zse_96(getattr(args, "x_zse_96", None))
+        except ValueError as e:
+            err = str(e)
+            log.error("%s", err)
+            if args.json:
+                json_print({"event": "error", "error": err})
+            else:
+                print(err, file=sys.stderr)
+            return 2
+        if zse:
+            headers["x-zse-96"] = zse
+            log.info("using --x-zse-96 (len=%s prefix=%s…)", len(zse), zse[:8])
+        else:
+            log.debug("no --x-zse-96; article detail may HTTP 403 (copy from browser if needed)")
 
         client = ZhihuClient(cookies, headers=headers or None)
 

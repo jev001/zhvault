@@ -61,7 +61,7 @@ zhvault account plan --mode migrate --from-data-dir ../a/data --source following
 zhvault account apply --plan plan.json --i-understand-danger --confirm APPLY --json
 ```
 
-Useful flags: `--data-dir`, `--engine`, `--source`, `--user`, `--full`, `--collection-id`, `--x-zse-96`, `--asset-workers`, `--asset-link`, `--json`, `--vector-backend`, `--embed-provider`, `--embed-model`, `--embed-api-base`, `--embed-api-key`, `--from-data-dir`, `--map-collection`, `--i-understand-danger`, `--confirm`.
+Useful flags: `--data-dir`, `--engine`, `--source`, `--user`, `--full`, `--collection-id`, `--x-zse-96` (full browser token, usually `2.0_…` — not `1`), `--asset-workers`, `--asset-link`, `--json`, `--vector-backend`, `--embed-provider`, `--embed-model`, `--embed-api-base`, `--embed-api-key`, `--from-data-dir`, `--map-collection`, `--i-understand-danger`, `--confirm`.
 
 Optional extras:
 - `pip install 'zhvault[chroma]'` — durable Chroma vector index. Default `--vector-backend` is chroma when importable; otherwise the CLI fails with an install hint (pass `--vector-backend memory` only for tests).

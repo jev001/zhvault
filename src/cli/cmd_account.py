@@ -9,6 +9,7 @@ from http_client import ZhihuClient
 from mutate.apply import ApplyGateError, apply_plan
 from mutate.plan import build_plan, load_plan, parse_map_collection, parse_sources
 from storage import open_engine
+from zse96 import normalize_x_zse_96
 
 from .common import ME_URL, cmd_fail, data_paths, json_print, log
 
@@ -52,8 +53,12 @@ def cmd_account_plan(args: argparse.Namespace) -> int:
             )
             if cookies:
                 headers: dict[str, str] = {}
-                if args.x_zse_96:
-                    headers["x-zse-96"] = args.x_zse_96
+                try:
+                    zse = normalize_x_zse_96(getattr(args, "x_zse_96", None))
+                except ValueError as e:
+                    return cmd_fail(args, str(e))
+                if zse:
+                    headers["x-zse-96"] = zse
                 client = ZhihuClient(cookies, headers=headers or None)
                 try:
                     me = client.get_json(ME_URL)
@@ -131,8 +136,12 @@ def cmd_account_apply(args: argparse.Namespace) -> int:
         if not cookies:
             return cmd_fail(args, "no cookie; run: zhvault auth set-cookie Cookies.json")
         headers: dict[str, str] = {}
-        if args.x_zse_96:
-            headers["x-zse-96"] = args.x_zse_96
+        try:
+            zse = normalize_x_zse_96(getattr(args, "x_zse_96", None))
+        except ValueError as e:
+            return cmd_fail(args, str(e))
+        if zse:
+            headers["x-zse-96"] = zse
         client = ZhihuClient(cookies, headers=headers or None)
         try:
             result = apply_plan(
