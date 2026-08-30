@@ -1,7 +1,7 @@
 # Account Mutate — Source Kind Split + Offset Window
 
 **Date:** 2026-08-30  
-**Status:** Approved (design); awaiting implementation plan  
+**Status:** Implemented  
 **Extends:** [2026-08-29-account-mutate-design.md](./2026-08-29-account-mutate-design.md)
 
 ## Goal

@@ -20,10 +20,12 @@ SOURCE_ALIASES = {
     "followees": "following",
     "collection": "collection",
     "collections": "collection",
-    "followed": "followed",
-    "followed_questions": "followed",
-    "followed-questions": "followed",
+    "followed_questions": "followed_questions",
+    "followed": "followed_questions",
+    "followed-questions": "followed_questions",
 }
+
+ALL_SOURCES = ["following", "followed_questions", "collection"]
 
 CONTENT_TYPES = {"answer", "article", "pin", "zvideo", "question"}
 
@@ -31,12 +33,22 @@ CONTENT_TYPES = {"answer", "article", "pin", "zvideo", "question"}
 def parse_sources(raw: str) -> list[str]:
     parts = [p.strip() for p in (raw or "").split(",") if p.strip()]
     if not parts:
-        raise ValueError("--source required (comma list: following,collection,followed)")
+        raise ValueError(
+            "--source required (comma list: following,followed_questions,collection,all)"
+        )
     out: list[str] = []
     for p in parts:
-        key = SOURCE_ALIASES.get(p.lower())
+        low = p.lower()
+        if low == "all":
+            for key in ALL_SOURCES:
+                if key not in out:
+                    out.append(key)
+            continue
+        key = SOURCE_ALIASES.get(low)
         if not key:
-            raise ValueError(f"unsupported mutate source {p!r}; use following|collection|followed")
+            raise ValueError(
+                f"unsupported mutate source {p!r}; use following|followed_questions|collection|all"
+            )
         if key not in out:
             out.append(key)
     return out
@@ -60,30 +72,40 @@ def fingerprint_inventory(
     mode: str,
     sources: list[str],
     limit: int | None,
+    offset: int,
     map_collection: dict[str, str],
     following: list[str],
-    followed: list[str],
+    followed_questions: list[str],
     collection_items: list[tuple[str, str, str]],
 ) -> str:
     payload = {
         "mode": mode,
         "sources": sources,
         "limit": limit,
+        "offset": offset,
         "map_collection": map_collection,
         "following": following,
-        "followed": followed,
+        "followed_questions": followed_questions,
         "collection_items": [[a, b, c] for a, b, c in collection_items],
     }
     blob = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
-def fingerprint_actions(actions: list[dict[str, Any]], *, mode: str, sources: list[str], limit: int | None) -> str:
+def fingerprint_actions(
+    actions: list[dict[str, Any]],
+    *,
+    mode: str,
+    sources: list[str],
+    limit: int | None,
+    offset: int = 0,
+) -> str:
     """Legacy helper for tests; prefer fingerprint_inventory for plans."""
     payload = {
         "mode": mode,
         "sources": sources,
         "limit": limit,
+        "offset": offset,
         "actions": actions,
     }
     blob = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -262,19 +284,22 @@ def build_plan(
     inventory_engine: StorageEngine,
     map_collection: dict[str, str] | None = None,
     limit: int | None = None,
+    offset: int = 0,
     client: ZhihuClient | None = None,
     actor_token: str | None = None,
     inventory_meta: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if mode not in ("prune", "migrate"):
         raise ValueError("mode must be prune|migrate")
+    if offset < 0:
+        raise ValueError("offset must be >= 0")
     map_collection = dict(map_collection or {})
     actions: list[dict[str, Any]] = []
     collection_resolve: list[dict[str, Any]] = []
 
     ego = actor_token or _ego_from_engine(inventory_engine) or ""
     following: list[str] = []
-    followed: list[str] = []
+    followed_questions: list[str] = []
     collection_items: list[tuple[str, str, str]] = []
 
     if "following" in sources:
@@ -283,9 +308,9 @@ def build_plan(
             op = "unfollow_user" if mode == "prune" else "follow_user"
             actions.append({"op": op, "url_token": tok})
 
-    if "followed" in sources:
-        followed = _followed_question_ids(inventory_engine)
-        for qid in followed:
+    if "followed_questions" in sources:
+        followed_questions = _followed_question_ids(inventory_engine)
+        for qid in followed_questions:
             op = "unfollow_question" if mode == "prune" else "follow_question"
             actions.append({"op": op, "question_id": qid})
 
@@ -323,29 +348,32 @@ def build_plan(
                     action["collection_id"] = target
                 actions.append(action)
 
-    if limit is not None and limit >= 0:
-        actions = actions[:limit]
-
     actions = sorted(actions, key=lambda a: json.dumps(a, sort_keys=True))
+    total_before_window = len(actions)
+    if limit is not None and limit >= 0:
+        actions = actions[offset : offset + limit]
+    else:
+        actions = actions[offset:]
 
     snap_following = following if "following" in sources else []
-    snap_followed = followed if "followed" in sources else []
+    snap_followed_questions = followed_questions if "followed_questions" in sources else []
     snap_collection = collection_items if "collection" in sources else []
 
     fp = fingerprint_inventory(
         mode=mode,
         sources=sources,
         limit=limit,
+        offset=offset,
         map_collection=map_collection,
         following=snap_following,
-        followed=snap_followed,
+        followed_questions=snap_followed_questions,
         collection_items=snap_collection,
     )
     meta = dict(inventory_meta or {})
     meta.setdefault("map_collection", map_collection)
     meta["snapshot"] = {
         "following": snap_following,
-        "followed": snap_followed,
+        "followed_questions": snap_followed_questions,
         "collection_items": [[a, b, c] for a, b, c in snap_collection],
     }
     plan: dict[str, Any] = {
@@ -356,6 +384,8 @@ def build_plan(
         "actor_hint": actor_token,
         "sources": sources,
         "limit": limit,
+        "offset": offset,
+        "total_before_window": total_before_window,
         "actions": actions,
         "collection_resolve": collection_resolve,
         "inventory": meta,
@@ -376,15 +406,18 @@ def recompute_fingerprint(plan: dict[str, Any]) -> str:
     """Recompute from embedded inventory snapshot fields if present; else actions (tests)."""
     inv = plan.get("inventory") or {}
     snap = inv.get("snapshot")
+    offset = int(plan.get("offset") or 0)
     if isinstance(snap, dict):
         items = snap.get("collection_items") or []
+        followed_questions = list(snap.get("followed_questions") or snap.get("followed") or [])
         return fingerprint_inventory(
             mode=str(plan.get("mode")),
             sources=list(plan.get("sources") or []),
             limit=plan.get("limit"),
+            offset=offset,
             map_collection=dict(inv.get("map_collection") or {}),
             following=list(snap.get("following") or []),
-            followed=list(snap.get("followed") or []),
+            followed_questions=followed_questions,
             collection_items=[(a, b, c) for a, b, c in items],
         )
     return fingerprint_actions(
@@ -392,6 +425,7 @@ def recompute_fingerprint(plan: dict[str, Any]) -> str:
         mode=str(plan.get("mode")),
         sources=list(plan.get("sources") or []),
         limit=plan.get("limit"),
+        offset=offset,
     )
 
 
@@ -402,12 +436,15 @@ def load_plan(path: Path) -> dict[str, Any]:
     return data
 
 
-def rebuild_plan_from_inventory(plan: dict[str, Any], *, open_engine_fn, client: ZhihuClient | None = None) -> dict[str, Any]:
+def rebuild_plan_from_inventory(
+    plan: dict[str, Any], *, open_engine_fn, client: ZhihuClient | None = None
+) -> dict[str, Any]:
     """Rebuild plan from inventory paths stored in plan for fingerprint verification."""
     inv = plan.get("inventory") or {}
     mode = str(plan.get("mode"))
     sources = list(plan.get("sources") or [])
     limit = plan.get("limit")
+    offset = int(plan.get("offset") or 0)
     map_collection = dict(inv.get("map_collection") or {})
     from_data = inv.get("from_data_dir")
     data_dir = inv.get("data_dir")
@@ -429,6 +466,7 @@ def rebuild_plan_from_inventory(plan: dict[str, Any], *, open_engine_fn, client:
             inventory_engine=eng,
             map_collection=map_collection,
             limit=limit,
+            offset=offset,
             client=client,
             actor_token=plan.get("actor_hint"),
             inventory_meta=inv,

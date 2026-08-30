@@ -457,13 +457,16 @@ def search_semantic(
 def account_plan(
     mode: AccountMode = typer.Option(..., "--mode"),
     source: str = typer.Option(
-        ..., "--source", help="comma list: following,collection,followed (required; no default)"
+        ...,
+        "--source",
+        help="comma list: following,followed_questions,collection,all (required; no default)",
     ),
     from_data_dir: str | None = typer.Option(None, "--from-data-dir", help="account A data dir (migrate)"),
     map_collection: list[str] = typer.Option(
         [], "--map-collection", help="A_id=B_id collection map (repeatable; migrate)"
     ),
     limit: int | None = typer.Option(None, "--limit", help="cap actions in plan"),
+    offset: int = typer.Option(0, "--offset", help="skip first N sorted actions (batch window)"),
     cookie_file: str | None = typer.Option(None, "--cookie-file"),
     x_zse_96: str | None = typer.Option(None, "--x-zse-96"),
     data_dir: str = typer.Option("data", "--data-dir", help="root data directory"),
@@ -479,6 +482,7 @@ def account_plan(
         from_data_dir=from_data_dir,
         map_collection=map_collection,
         limit=limit,
+        offset=offset,
         cookie_file=cookie_file,
         x_zse_96=x_zse_96,
         **_common_options(data_dir, engine, json, verbose, log_file),

@@ -68,7 +68,10 @@ def test_parse_sources_required():
     with pytest.raises(ValueError):
         parse_sources("")
     assert parse_sources("following,collection") == ["following", "collection"]
-    assert parse_sources("followed_questions") == ["followed"]
+    assert parse_sources("followed") == ["followed_questions"]
+    assert parse_sources("followed_questions") == ["followed_questions"]
+    assert parse_sources("all") == ["following", "followed_questions", "collection"]
+    assert parse_sources("all,following") == ["following", "followed_questions", "collection"]
 
 
 def test_plan_prune_following_only(tmp_path: Path):
@@ -116,7 +119,9 @@ def test_plan_collection_and_followed(tmp_path: Path):
     _seed_collection(meta)
     eng = open_engine("sqlite", meta)
     try:
-        prune = build_plan(mode="prune", sources=["collection", "followed"], inventory_engine=eng)
+        prune = build_plan(
+            mode="prune", sources=["collection", "followed_questions"], inventory_engine=eng
+        )
         mig = build_plan(
             mode="migrate",
             sources=["collection"],
@@ -130,6 +135,85 @@ def test_plan_collection_and_followed(tmp_path: Path):
     add = [a for a in mig["actions"] if a["op"] == "collect_add"]
     assert len(add) == 1
     assert add[0]["collection_id"] == "200"
+
+
+def test_plan_offset_limit_window(tmp_path: Path):
+    meta = tmp_path / "meta"
+    meta.mkdir()
+    _seed_following(meta, friends=["alice", "bob", "carol"])
+    eng = open_engine("sqlite", meta)
+    try:
+        p0 = build_plan(
+            mode="prune",
+            sources=["following"],
+            inventory_engine=eng,
+            actor_token="me",
+            offset=0,
+            limit=1,
+        )
+        p1 = build_plan(
+            mode="prune",
+            sources=["following"],
+            inventory_engine=eng,
+            actor_token="me",
+            offset=1,
+            limit=1,
+        )
+        full = build_plan(
+            mode="prune",
+            sources=["following"],
+            inventory_engine=eng,
+            actor_token="me",
+        )
+    finally:
+        eng.close()
+    assert full["total_before_window"] == 3
+    assert len(p0["actions"]) == 1
+    assert len(p1["actions"]) == 1
+    assert p0["actions"] != p1["actions"]
+    assert p0["fingerprint"] != p1["fingerprint"]
+    assert p0["offset"] == 0 and p1["offset"] == 1
+    snap = full["inventory"]["snapshot"]
+    assert "following" in snap
+    assert snap.get("following")
+
+
+def test_plan_offset_default_matches_zero(tmp_path: Path):
+    meta = tmp_path / "meta"
+    meta.mkdir()
+    _seed_following(meta)
+    eng = open_engine("sqlite", meta)
+    try:
+        a = build_plan(mode="prune", sources=["following"], inventory_engine=eng, actor_token="me")
+        b = build_plan(
+            mode="prune",
+            sources=["following"],
+            inventory_engine=eng,
+            actor_token="me",
+            offset=0,
+        )
+    finally:
+        eng.close()
+    assert a["fingerprint"] == b["fingerprint"]
+    assert a["actions"] == b["actions"]
+
+
+def test_build_plan_rejects_negative_offset(tmp_path: Path):
+    meta = tmp_path / "meta"
+    meta.mkdir()
+    _seed_following(meta)
+    eng = open_engine("sqlite", meta)
+    try:
+        with pytest.raises(ValueError, match="offset"):
+            build_plan(
+                mode="prune",
+                sources=["following"],
+                inventory_engine=eng,
+                actor_token="me",
+                offset=-1,
+            )
+    finally:
+        eng.close()
 
 
 def test_apply_gates_refuse():

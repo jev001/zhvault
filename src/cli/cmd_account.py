@@ -81,6 +81,7 @@ def cmd_account_plan(args: argparse.Namespace) -> int:
             inventory_engine=inv_engine,
             map_collection=map_collection,
             limit=args.limit,
+            offset=int(getattr(args, "offset", 0) or 0),
             client=client if mode == "migrate" else None,
             actor_token=actor_token,
             inventory_meta=inventory_meta,
